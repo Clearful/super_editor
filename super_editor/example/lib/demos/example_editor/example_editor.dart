@@ -1,6 +1,3 @@
-import 'dart:ui';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -19,41 +16,41 @@ class ExampleEditor extends StatefulWidget {
 class _ExampleEditorState extends State<ExampleEditor> {
   final GlobalKey _docLayoutKey = GlobalKey();
 
-  Document _doc;
-  DocumentEditor _docEditor;
-  DocumentComposer _composer;
+  late Document _doc;
+  DocumentEditor? _docEditor;
+  DocumentComposer? _composer;
 
-  FocusNode _editorFocusNode;
+  FocusNode? _editorFocusNode;
 
-  ScrollController _scrollController;
+  ScrollController? _scrollController;
 
-  OverlayEntry _formatBarOverlayEntry;
-  final _selectionAnchor = ValueNotifier<Offset>(null);
+  OverlayEntry? _formatBarOverlayEntry;
+  final _selectionAnchor = ValueNotifier<Offset?>(null);
 
   @override
   void initState() {
     super.initState();
-    _doc = createInitialDocument()..addListener(_updateToolbarDisplay);
-    _docEditor = DocumentEditor(document: _doc);
-    _composer = DocumentComposer()..addListener(_updateToolbarDisplay);
+    _doc = createInitialDocument()..addListener(_hideOrShowToolbar);
+    _docEditor = DocumentEditor(document: _doc as MutableDocument);
+    _composer = DocumentComposer()..addListener(_hideOrShowToolbar);
     _editorFocusNode = FocusNode();
-    _scrollController = ScrollController()..addListener(_updateToolbarDisplay);
+    _scrollController = ScrollController()..addListener(_hideOrShowToolbar);
   }
 
   @override
   void dispose() {
     if (_formatBarOverlayEntry != null) {
-      _formatBarOverlayEntry.remove();
+      _formatBarOverlayEntry!.remove();
     }
 
-    _scrollController.dispose();
-    _editorFocusNode.dispose();
-    _composer.dispose();
+    _scrollController!.dispose();
+    _editorFocusNode!.dispose();
+    _composer!.dispose();
     super.dispose();
   }
 
-  void _updateToolbarDisplay() {
-    final selection = _composer.selection;
+  void _hideOrShowToolbar() {
+    final selection = _composer!.selection;
     if (selection == null) {
       // Nothing is selected. We don't want to show a toolbar
       // in this case.
@@ -104,24 +101,28 @@ class _ExampleEditorState extends State<ExampleEditor> {
       });
 
       // Display the toolbar in the application overlay.
-      final overlay = Overlay.of(context);
-      overlay.insert(_formatBarOverlayEntry);
-
-      // Schedule a callback after this frame to locate the selection
-      // bounds on the screen and display the toolbar near the selected
-      // text.
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        final docBoundingBox = (_docLayoutKey.currentState as DocumentLayout)
-            .getRectForSelection(_composer.selection.base, _composer.selection.extent);
-        final docBox = _docLayoutKey.currentContext.findRenderObject() as RenderBox;
-        final overlayBoundingBox = Rect.fromPoints(
-          docBox.localToGlobal(docBoundingBox.topLeft, ancestor: context.findRenderObject()),
-          docBox.localToGlobal(docBoundingBox.bottomRight, ancestor: context.findRenderObject()),
-        );
-
-        _selectionAnchor.value = overlayBoundingBox.topCenter;
-      });
+      final overlay = Overlay.of(context)!;
+      overlay.insert(_formatBarOverlayEntry!);
     }
+
+    // Schedule a callback after this frame to locate the selection
+    // bounds on the screen and display the toolbar near the selected
+    // text.
+    WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
+      if (_formatBarOverlayEntry == null) {
+        return;
+      }
+
+      final docBoundingBox = (_docLayoutKey.currentState as DocumentLayout)
+          .getRectForSelection(_composer!.selection!.base, _composer!.selection!.extent)!;
+      final docBox = _docLayoutKey.currentContext!.findRenderObject() as RenderBox;
+      final overlayBoundingBox = Rect.fromPoints(
+        docBox.localToGlobal(docBoundingBox.topLeft, ancestor: context.findRenderObject()),
+        docBox.localToGlobal(docBoundingBox.bottomRight, ancestor: context.findRenderObject()),
+      );
+
+      _selectionAnchor.value = overlayBoundingBox.topCenter;
+    });
   }
 
   void _hideEditorToolbar() {
@@ -135,7 +136,7 @@ class _ExampleEditorState extends State<ExampleEditor> {
       // or not the entry exists in the overlay, so in our
       // case, null implies the entry is not in the overlay,
       // and non-null implies the entry is in the overlay.
-      _formatBarOverlayEntry.remove();
+      _formatBarOverlayEntry!.remove();
       _formatBarOverlayEntry = null;
     }
 
@@ -144,13 +145,13 @@ class _ExampleEditorState extends State<ExampleEditor> {
     // I tried explicitly unfocus()'ing the URL textfield
     // in the toolbar but it didn't return focus to the
     // editor. I'm not sure why.
-    _editorFocusNode.requestFocus();
+    _editorFocusNode!.requestFocus();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Editor.standard(
-      editor: _docEditor,
+    return SuperEditor(
+      editor: _docEditor!,
       composer: _composer,
       focusNode: _editorFocusNode,
       scrollController: _scrollController,

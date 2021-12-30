@@ -3,14 +3,16 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
-const Duration kTapMinTime = Duration(milliseconds: 40);
+const kTapMinTime = Duration(milliseconds: 40);
+const kTapTimeout = Duration(milliseconds: 300);
 
 /// Recognizes when the user has tapped the screen at the same location one,
 /// two, and three times.
 ///
-/// Each tap is reported as soon as it occurs. One particular tap sequence,
-/// e.g., a double-tap, does not prevent callbacks for other tap sequences,
-/// e.g., a single-tap or triple-tap.
+/// Reports all gestures in a sequence when [reportPrecedingGestures] is `true`,
+/// e.g., single-tap followed by double-tap followed by triple-tap. When
+/// [reportPrecedingGestures] is `false`, only the final gesture is reported,
+/// e.g., a triple-tap without a single-tap or double-tap.
 ///
 /// This implementation is based on Flutter's `DoubleTapGestureRecognizer`
 /// implementation. I don't know how correct this implementation is, but
@@ -22,37 +24,65 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
   TapSequenceGestureRecognizer({
     Object? debugOwner,
     PointerDeviceKind? kind,
+    final this.reportPrecedingGestures = true,
   }) : super(debugOwner: debugOwner, kind: kind);
 
+  /// If `true`, reports the gestures that lead up to the final
+  /// gesture, e.g., reports a single-tap before reporting a double-tap.
+  ///
+  /// If `false`, only reports the final gesture, e.g., reports double-tap,
+  /// but not the single-tap that preceded it.
+  final bool reportPrecedingGestures;
+
   GestureTapDownCallback? onTapDown;
+  GestureTapUpCallback? onTapUp;
   GestureDoubleTapCallback? onTap;
   GestureTapCancelCallback? onTapCancel;
 
   GestureTapDownCallback? onDoubleTapDown;
+  GestureTapUpCallback? onDoubleTapUp;
   GestureDoubleTapCallback? onDoubleTap;
   GestureTapCancelCallback? onDoubleTapCancel;
 
   GestureTapDownCallback? onTripleTapDown;
+  GestureTapUpCallback? onTripleTapUp;
   GestureDoubleTapCallback? onTripleTap;
   GestureTapCancelCallback? onTripleTapCancel;
 
-  Timer? _tripleTapTimer;
+  /// Callback that's invoked when this gesture recognizer
+  /// exceeds the timeout between taps and stops looking for
+  /// a gesture.
+  ///
+  /// If a triple-tap occurs, the timeout never executes because
+  /// a triple tap is the final possible gesture in the sequence.
+  ///
+  /// If a single tap or double tap occurs, without making it to
+  /// a final triple tap, the timeout will be invoked. This means
+  /// that if a user taps one time, and only intends to tap one time,
+  /// then this timeout is still invoked. The timeout doesn't mean
+  /// that no gesture occurred, it only means that the user didn't
+  /// triple tap. This timeout is provided so that clients can
+  /// take an action after a single tap or double tap without worrying
+  /// about yet another gesture being reported shortly thereafter.
+  VoidCallback? onTimeout;
+
+  Timer? _tapTimer;
   _TapTracker? _firstTap;
+  TapDownDetails? _firstTapDownDetails;
+  TapUpDetails? _firstTapUpDetails;
   _TapTracker? _secondTap;
+  TapDownDetails? _secondTapDownDetails;
+  TapUpDetails? _secondTapUpDetails;
   final Map<int, _TapTracker> _trackers = <int, _TapTracker>{};
 
   @override
   bool isPointerAllowed(PointerDownEvent event) {
     if (_firstTap == null) {
-      switch (event.buttons) {
-        case kPrimaryButton:
-          if (onTripleTapDown == null && onTripleTap == null && onTripleTapCancel == null) return false;
-          break;
-        default:
-          return false;
+      if (event.buttons != kPrimaryButton) {
+        return false;
       }
     }
-    return super.isPointerAllowed(event);
+    return event.buttons == kPrimaryButton && super.isPointerAllowed(event);
   }
 
   @override
@@ -61,7 +91,8 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
       if (!_secondTap!.isWithinGlobalTolerance(event, kDoubleTapSlop)) {
         // Ignore out-of-bounds second taps.
         return;
-      } else if (!_secondTap!.hasElapsedMinTime() || !_secondTap!.hasSameButton(event)) {
+      } else if (!_secondTap!.hasElapsedMinTime() ||
+          !_secondTap!.hasSameButton(event)) {
         // Restart when the third tap is too close to the second (touch screens
         // often detect touches intermittently), or when buttons mismatch.
         _reset();
@@ -72,32 +103,40 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
           localPosition: event.localPosition,
           kind: getKindForPointer(event.pointer),
         );
-        invokeCallback<void>('onTripleTapDown', () => onTripleTapDown!(details));
+        invokeCallback<void>(
+            'onTripleTapDown', () => onTripleTapDown!(details));
       }
     } else if (_firstTap != null) {
       if (!_firstTap!.isWithinGlobalTolerance(event, kDoubleTapSlop)) {
         // Ignore out-of-bounds second taps.
         return;
-      } else if (!_firstTap!.hasElapsedMinTime() || !_firstTap!.hasSameButton(event)) {
+      } else if (!_firstTap!.hasElapsedMinTime() ||
+          !_firstTap!.hasSameButton(event)) {
         // Restart when the second tap is too close to the first (touch screens
         // often detect touches intermittently), or when buttons mismatch.
         _reset();
         return _trackTap(event);
       } else if (onDoubleTapDown != null) {
-        final TapDownDetails details = TapDownDetails(
+        _secondTapDownDetails = TapDownDetails(
           globalPosition: event.position,
           localPosition: event.localPosition,
           kind: getKindForPointer(event.pointer),
         );
-        invokeCallback<void>('onDoubleTapDown', () => onDoubleTapDown!(details));
+        if (reportPrecedingGestures) {
+          invokeCallback<void>('onDoubleTapDown',
+              () => onDoubleTapDown!(_secondTapDownDetails!));
+        }
       }
     } else if (onTapDown != null) {
-      final TapDownDetails details = TapDownDetails(
+      _firstTapDownDetails = TapDownDetails(
         globalPosition: event.position,
         localPosition: event.localPosition,
         kind: getKindForPointer(event.pointer),
       );
-      invokeCallback<void>('onTapDown', () => onTapDown!(details));
+      if (reportPrecedingGestures) {
+        invokeCallback<void>(
+            'onTapDown', () => onTapDown!(_firstTapDownDetails!));
+      }
     }
 
     _trackTap(event);
@@ -108,7 +147,7 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
     final _TapTracker tracker = _TapTracker(
       event: event,
       entry: GestureBinding.instance!.gestureArena.add(event.pointer, this),
-      doubleTapMinTime: kTapMinTime,
+      tapMinTime: kTapMinTime,
     );
     _trackers[event.pointer] = tracker;
     if (event.transform != null) {
@@ -120,11 +159,11 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
     final _TapTracker tracker = _trackers[event.pointer]!;
     if (event is PointerUpEvent) {
       if (_firstTap == null) {
-        _registerFirstTap(tracker);
+        _registerFirstTap(event, tracker);
       } else if (_secondTap == null) {
-        _registerSecondTap(tracker);
+        _registerSecondTap(event, tracker);
       } else {
-        _registerThirdTap(tracker);
+        _registerThirdTap(event, tracker);
       }
     } else if (event is PointerMoveEvent) {
       if (!tracker.isWithinGlobalTolerance(event, kDoubleTapTouchSlop)) {
@@ -146,7 +185,9 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
       tracker = _firstTap;
     }
     // If tracker is still null, check if this is the first tap tracker
-    if (tracker == null && _secondTap != null && _secondTap!.pointer == pointer) {
+    if (tracker == null &&
+        _secondTap != null &&
+        _secondTap!.pointer == pointer) {
       tracker = _secondTap;
     }
     // If tracker is still null, we rejected ourselves already
@@ -177,6 +218,43 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
     super.dispose();
   }
 
+  void _onTapTimeout() {
+    // If we weren't reporting gestures as they came in, report
+    // the final gesture that took place.
+    if (!reportPrecedingGestures) {
+      if (_secondTap != null) {
+        if (onDoubleTapDown != null) {
+          invokeCallback<void>('onDoubleTapDown',
+              () => onDoubleTapDown!(_secondTapDownDetails!));
+        }
+        if (onDoubleTapUp != null) {
+          invokeCallback<void>(
+              'onDoubleTapUp', () => onDoubleTapUp!(_secondTapUpDetails!));
+        }
+        if (onDoubleTap != null) {
+          invokeCallback<void>('onDoubleTap', onDoubleTap!);
+        }
+      } else if (_firstTap != null) {
+        if (onTapDown != null) {
+          invokeCallback<void>(
+              'onTapDown', () => onTapDown!(_firstTapDownDetails!));
+        }
+        if (onTapUp != null) {
+          invokeCallback<void>('onTapUp', () => onTapUp!(_firstTapUpDetails!));
+        }
+        if (onTap != null) {
+          invokeCallback<void>('onTap', onTap!);
+        }
+      }
+    }
+
+    if (onTimeout != null) {
+      invokeCallback<void>('onTimeout', onTimeout!);
+    }
+
+    _reset();
+  }
+
   void _reset() {
     _stopTapTimer();
     if (_secondTap != null) {
@@ -204,9 +282,9 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
     _clearTrackers();
   }
 
-  void _registerFirstTap(_TapTracker tracker) {
+  void _registerFirstTap(PointerEvent event, _TapTracker tracker) {
     _startTapTimer();
-    _checkUp(tracker.initialButtons);
+    _checkUp(event, tracker.initialButtons);
     GestureBinding.instance!.gestureArena.hold(tracker.pointer);
     // Note, order is important below in order for the clear -> reject logic to
     // work properly.
@@ -216,9 +294,9 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
     _firstTap = tracker;
   }
 
-  void _registerSecondTap(_TapTracker tracker) {
+  void _registerSecondTap(PointerEvent event, _TapTracker tracker) {
     _startTapTimer();
-    _checkUp(tracker.initialButtons);
+    _checkUp(event, tracker.initialButtons);
     GestureBinding.instance!.gestureArena.hold(tracker.pointer);
     // Note, order is important below in order for the clear -> reject logic to
     // work properly.
@@ -228,12 +306,12 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
     _secondTap = tracker;
   }
 
-  void _registerThirdTap(_TapTracker tracker) {
+  void _registerThirdTap(PointerEvent event, _TapTracker tracker) {
     _secondTap!.entry.resolve(GestureDisposition.accepted);
     tracker.entry.resolve(GestureDisposition.accepted);
     _freezeTracker(tracker);
     _trackers.remove(tracker.pointer);
-    _checkUp(tracker.initialButtons);
+    _checkUp(event, tracker.initialButtons);
     _reset();
   }
 
@@ -247,26 +325,55 @@ class TapSequenceGestureRecognizer extends GestureRecognizer {
   }
 
   void _startTapTimer() {
-    _tripleTapTimer ??= Timer(kDoubleTapTimeout, _reset);
+    _tapTimer ??= Timer(kTapTimeout, _onTapTimeout);
   }
 
   void _stopTapTimer() {
-    if (_tripleTapTimer != null) {
-      _tripleTapTimer!.cancel();
-      _tripleTapTimer = null;
+    if (_tapTimer != null) {
+      _tapTimer!.cancel();
+      _tapTimer = null;
     }
   }
 
-  void _checkUp(int buttons) {
+  void _checkUp(PointerEvent event, int buttons) {
     assert(buttons == kPrimaryButton);
-    if (_firstTap == null && _secondTap == null && onTap != null) {
-      invokeCallback<void>('onTap', onTap!);
-    }
-    if (_firstTap != null && _secondTap == null && onDoubleTap != null) {
-      invokeCallback<void>('onDoubleTap', onDoubleTap!);
-    }
-    if (_secondTap != null && onTripleTap != null) {
-      invokeCallback<void>('onTripleTap', onTripleTap!);
+    if (_firstTap == null && _secondTap == null) {
+      _firstTapUpDetails = TapUpDetails(
+        globalPosition: event.position,
+        localPosition: event.localPosition,
+        kind: getKindForPointer(event.pointer),
+      );
+      if (onTapUp != null && reportPrecedingGestures) {
+        invokeCallback<void>('onTapUp', () => onTapUp!(_firstTapUpDetails!));
+      }
+      if (onTap != null && reportPrecedingGestures) {
+        invokeCallback<void>('onTap', onTap!);
+      }
+    } else if (_firstTap != null && _secondTap == null) {
+      _secondTapUpDetails = TapUpDetails(
+        globalPosition: event.position,
+        localPosition: event.localPosition,
+        kind: getKindForPointer(event.pointer),
+      );
+      if (onDoubleTapUp != null && reportPrecedingGestures) {
+        invokeCallback<void>(
+            'onDoubleTapUp', () => onDoubleTapUp!(_secondTapUpDetails!));
+      }
+      if (onDoubleTap != null && reportPrecedingGestures) {
+        invokeCallback<void>('onDoubleTap', onDoubleTap!);
+      }
+    } else if (_secondTap != null) {
+      if (onTripleTapUp != null) {
+        final TapUpDetails details = TapUpDetails(
+          globalPosition: event.position,
+          localPosition: event.localPosition,
+          kind: getKindForPointer(event.pointer),
+        );
+        invokeCallback<void>('onTripleTapUp', () => onTripleTapUp!(details));
+      }
+      if (onTripleTap != null) {
+        invokeCallback<void>('onTripleTap', onTripleTap!);
+      }
     }
   }
 
@@ -292,26 +399,28 @@ typedef GestureDoubleTapCallback = void Function();
 /// larger gesture.
 class _TapTracker {
   _TapTracker({
-    required PointerDownEvent event,
+    required this.event,
     required this.entry,
-    required Duration doubleTapMinTime,
-  })   : pointer = event.pointer,
+    required Duration tapMinTime,
+  })  : pointer = event.pointer,
         _initialGlobalPosition = event.position,
         initialButtons = event.buttons,
-        _doubleTapMinTimeCountdown = _CountdownZoned(duration: doubleTapMinTime);
+        _tapMinTimeCountdown = _CountdownZoned(duration: tapMinTime);
 
+  final PointerDownEvent event;
   final int pointer;
   final GestureArenaEntry entry;
   final Offset _initialGlobalPosition;
   final int initialButtons;
-  final _CountdownZoned _doubleTapMinTimeCountdown;
+  final _CountdownZoned _tapMinTimeCountdown;
 
   bool _isTrackingPointer = false;
 
   void startTrackingPointer(PointerRoute route, Matrix4 transform) {
     if (!_isTrackingPointer) {
       _isTrackingPointer = true;
-      GestureBinding.instance!.pointerRouter.addRoute(pointer, route, transform);
+      GestureBinding.instance!.pointerRouter
+          .addRoute(pointer, route, transform);
     }
   }
 
@@ -328,7 +437,7 @@ class _TapTracker {
   }
 
   bool hasElapsedMinTime() {
-    return _doubleTapMinTimeCountdown.timeout;
+    return _tapMinTimeCountdown.timeout;
   }
 
   bool hasSameButton(PointerDownEvent event) {

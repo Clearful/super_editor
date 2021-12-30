@@ -5,8 +5,8 @@ import '_robot.dart';
 
 class EmojisTextFieldDemo extends StatefulWidget {
   const EmojisTextFieldDemo({
-    Key key,
-    @required this.direction,
+    Key? key,
+    required this.direction,
   }) : super(key: key);
 
   final TextAffinity direction;
@@ -18,10 +18,10 @@ class EmojisTextFieldDemo extends StatefulWidget {
 class _EmojisTextFieldDemoState extends State<EmojisTextFieldDemo> with TickerProviderStateMixin {
   final _textFieldController = AttributedTextEditingController();
 
-  GlobalKey<SuperTextFieldState> _textKey;
-  TextFieldDemoRobot _demoRobot;
+  GlobalKey<SuperTextFieldState>? _textKey;
+  late TextFieldDemoRobot _demoRobot;
 
-  FocusNode _focusNode;
+  FocusNode? _focusNode;
 
   @override
   void initState() {
@@ -34,7 +34,7 @@ class _EmojisTextFieldDemoState extends State<EmojisTextFieldDemo> with TickerPr
       textKey: _textKey,
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
       _startDemo();
     });
   }
@@ -42,13 +42,13 @@ class _EmojisTextFieldDemoState extends State<EmojisTextFieldDemo> with TickerPr
   @override
   void dispose() {
     _demoRobot.dispose();
-    _focusNode.dispose();
+    _focusNode!.dispose();
     super.dispose();
   }
 
   void _startDemo() {
     _textFieldController
-      ..selection = TextSelection.collapsed(offset: 0)
+      ..selection = const TextSelection.collapsed(offset: 0)
       ..text = AttributedText(
         text: 'turtle 🐢 bomb 💣 skull ☠',
       );
@@ -63,7 +63,7 @@ class _EmojisTextFieldDemoState extends State<EmojisTextFieldDemo> with TickerPr
     } else {
       // simulate pressing delete
       _demoRobot
-        ..insertCaretAt(TextPosition(offset: 0))
+        ..insertCaretAt(const TextPosition(offset: 0))
         ..pause(const Duration(seconds: 1))
         ..deleteCharacters(_textFieldController.text.text.length)
         ..start();
@@ -81,7 +81,7 @@ class _EmojisTextFieldDemoState extends State<EmojisTextFieldDemo> with TickerPr
       behavior: HitTestBehavior.opaque,
       onTap: () {
         // Remove focus from text field when the user taps anywhere else.
-        _focusNode.unfocus();
+        _focusNode!.unfocus();
       },
       child: Center(
         child: SizedBox(
@@ -105,7 +105,7 @@ class _EmojisTextFieldDemoState extends State<EmojisTextFieldDemo> with TickerPr
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                            color: _focusNode.hasFocus ? Colors.blue : Colors.grey.shade300,
+                            color: _focusNode!.hasFocus ? Colors.blue : Colors.grey.shade300,
                             width: 1,
                           ),
                         ),
@@ -113,7 +113,7 @@ class _EmojisTextFieldDemoState extends State<EmojisTextFieldDemo> with TickerPr
                       );
                     },
                     hintBuilder: (context) {
-                      return Text(
+                      return const Text(
                         'enter some text',
                         style: TextStyle(
                           color: Colors.grey,
@@ -126,10 +126,10 @@ class _EmojisTextFieldDemoState extends State<EmojisTextFieldDemo> with TickerPr
                   ),
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _restartDemo,
-                child: Text('Restart Demo'),
+                child: const Text('Restart Demo'),
               ),
             ],
           ),

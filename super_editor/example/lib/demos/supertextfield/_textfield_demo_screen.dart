@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 class TextFieldDemoScreen extends StatelessWidget {
   const TextFieldDemoScreen({
-    Key key,
+    Key? key,
     this.menuItems = const [],
     this.child,
   }) : super(key: key);
 
   final List<DemoMenuItem> menuItems;
-  final Widget child;
+  final Widget? child;
 
   @override
   Widget build(BuildContext context) {
@@ -30,15 +30,15 @@ class TextFieldDemoScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     _buildTitle('SuperTextField'),
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
                     for (final menuItem in menuItems) ...[
                       _buildButton(
                         label: menuItem.label,
                         onPressed: menuItem.onPressed,
                       ),
-                      SizedBox(height: 24),
+                      const SizedBox(height: 24),
                     ],
                   ],
                 ),
@@ -53,7 +53,7 @@ class TextFieldDemoScreen extends StatelessWidget {
   Widget _buildTitle(String title) {
     return Text(
       title,
-      style: TextStyle(
+      style: const TextStyle(
         color: Colors.white,
         fontSize: 18,
         fontWeight: FontWeight.bold,
@@ -62,8 +62,8 @@ class TextFieldDemoScreen extends StatelessWidget {
   }
 
   Widget _buildButton({
-    @required String label,
-    @required VoidCallback onPressed,
+    required String label,
+    required VoidCallback onPressed,
   }) {
     return SizedBox(
       width: double.infinity,
@@ -77,8 +77,8 @@ class TextFieldDemoScreen extends StatelessWidget {
 
 class DemoMenuItem {
   DemoMenuItem({
-    @required this.label,
-    @required this.onPressed,
+    required this.label,
+    required this.onPressed,
   });
 
   final String label;

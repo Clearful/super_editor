@@ -1,20 +1,37 @@
+import 'package:example/demos/components/demo_text_with_hint.dart';
+import 'package:example/demos/components/demo_unselectable_hr.dart';
+import 'package:example/demos/demo_app_shortcuts.dart';
+import 'package:example/demos/demo_rtl.dart';
 import 'package:example/demos/demo_markdown_serialization.dart';
 import 'package:example/demos/demo_paragraphs.dart';
 import 'package:example/demos/demo_selectable_text.dart';
-import 'package:example/demos/supertextfield/demo_textfield.dart';
+import 'package:example/demos/editor_configs/demo_mobile_editing_android.dart';
+import 'package:example/demos/editor_configs/demo_mobile_editing_ios.dart';
 import 'package:example/demos/example_editor/example_editor.dart';
+import 'package:example/demos/flutter_features/textinputclient/basic_text_input_client.dart';
+import 'package:example/demos/scrolling/demo_task_and_chat_with_customscrollview.dart';
+import 'package:example/demos/supertextfield/ios/demo_superiostextfield.dart';
+import 'package:example/demos/flutter_features/textinputclient/textfield.dart';
 import 'package:example/demos/sliver_example_editor.dart';
+import 'package:example/demos/supertextfield/demo_textfield.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:logging/logging.dart';
+import 'package:super_editor/super_editor.dart';
 
 import 'demos/demo_attributed_text.dart';
 import 'demos/demo_document_loses_focus.dart';
 import 'demos/demo_switch_document_content.dart';
+import 'demos/scrolling/demo_task_and_chat_with_renderobject.dart';
+import 'demos/super_document/demo_read_only_scrolling_document.dart';
+import 'demos/supertextfield/android/demo_superandroidtextfield.dart';
 
 /// Demo of a basic text editor, as well as various widgets that
 /// are available in this package.
 Future<void> main() async {
+  initLoggers(Level.FINEST, {editorLog});
+
   runApp(SuperEditorDemoApp());
 }
 
@@ -27,11 +44,11 @@ class SuperEditorDemoApp extends StatelessWidget {
         primarySwatch: Colors.red,
       ),
       home: HomeScreen(),
-      supportedLocales: [
-        const Locale('en', ''),
-        const Locale('es', ''),
+      supportedLocales: const [
+        Locale('en', ''),
+        Locale('es', ''),
       ],
-      localizationsDelegates: [
+      localizationsDelegates: const [
         ...AppLocalizations.localizationsDelegates,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -52,7 +69,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  _MenuItem _selectedMenuItem;
+  _MenuItem? _selectedMenuItem;
 
   @override
   void initState() {
@@ -62,15 +79,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _toggleDrawer() {
-    if (_scaffoldKey.currentState.isDrawerOpen) {
+    if (_scaffoldKey.currentState!.isDrawerOpen) {
       Navigator.of(context).pop();
     } else {
-      _scaffoldKey.currentState.openDrawer();
+      _scaffoldKey.currentState!.openDrawer();
     }
   }
 
   void _closeDrawer() {
-    if (_scaffoldKey.currentState.isDrawerOpen) {
+    if (_scaffoldKey.currentState!.isDrawerOpen) {
       Navigator.of(context).pop();
     }
   }
@@ -88,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
       key: _scaffoldKey,
       appBar: _buildAppBar(context),
       extendBodyBehindAppBar: true,
-      body: _selectedMenuItem.pageBuilder(context),
+      body: _selectedMenuItem!.pageBuilder(context),
       drawer: _buildDrawer(),
     );
   }
@@ -98,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.transparent,
       elevation: 0,
       leading: IconButton(
-        icon: Icon(Icons.menu),
+        icon: const Icon(Icons.menu),
         color: Theme.of(context).colorScheme.onSurface,
         splashRadius: 24,
         onPressed: _toggleDrawer,
@@ -126,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                 ],
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
               ],
             ],
           ),
@@ -139,6 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
 // Demo options that are shown in the `HomeScreen` drawer.
 final _menu = <_MenuGroup>[
   _MenuGroup(
+    title: 'Super Editor',
     items: [
       _MenuItem(
         icon: Icons.description,
@@ -169,10 +187,74 @@ final _menu = <_MenuGroup>[
         },
       ),
       _MenuItem(
+        icon: Icons.shortcut,
+        title: 'App Shortcuts',
+        pageBuilder: (context) {
+          return AppShortcutsDemo();
+        },
+      ),
+      _MenuItem(
         icon: Icons.description,
         title: 'Markdown Serialization Demo',
         pageBuilder: (context) {
           return MarkdownSerializationDemo();
+        },
+      ),
+      _MenuItem(
+        icon: Icons.description,
+        title: 'RTL Demo',
+        pageBuilder: (context) {
+          return RTLDemo();
+        },
+      ),
+    ],
+  ),
+  _MenuGroup(
+    title: 'EDITOR CONFIGS',
+    items: [
+      _MenuItem(
+        icon: Icons.phone_android,
+        title: 'Mobile Editing - Android',
+        pageBuilder: (context) {
+          return MobileEditingAndroidDemo();
+        },
+      ),
+      _MenuItem(
+        icon: Icons.phone_android,
+        title: 'Mobile Editing - iOS',
+        pageBuilder: (context) {
+          return MobileEditingIOSDemo();
+        },
+      ),
+    ],
+  ),
+  _MenuGroup(
+    title: 'READ-ONLY DOCS',
+    items: [
+      _MenuItem(
+        icon: Icons.text_snippet,
+        title: 'In CustomScrollView',
+        pageBuilder: (context) {
+          return ReadOnlyCustomScrollViewDemo();
+        },
+      ),
+    ],
+  ),
+  _MenuGroup(
+    title: 'SCROLLING',
+    items: [
+      _MenuItem(
+        icon: Icons.task,
+        title: 'Task and Chat Demo - RenderBox',
+        pageBuilder: (context) {
+          return TaskAndChatWithRenderObjectDemo();
+        },
+      ),
+      _MenuItem(
+        icon: Icons.task,
+        title: 'Task and Chat Demo - Slivers',
+        pageBuilder: (context) {
+          return TaskAndChatWithCustomScrollViewDemo();
         },
       ),
     ],
@@ -190,7 +272,26 @@ final _menu = <_MenuGroup>[
     ],
   ),
   _MenuGroup(
-    title: 'INFRASTRUCTURE',
+    title: 'DOC COMPONENTS',
+    items: [
+      _MenuItem(
+        icon: Icons.short_text,
+        title: 'Text with hint',
+        pageBuilder: (context) {
+          return TextWithHintDemo();
+        },
+      ),
+      _MenuItem(
+        icon: Icons.short_text,
+        title: 'Unselectable HR',
+        pageBuilder: (context) {
+          return UnselectableHrDemo();
+        },
+      ),
+    ],
+  ),
+  _MenuGroup(
+    title: 'SUPER TEXT FIELD',
     items: [
       _MenuItem(
         icon: Icons.text_fields,
@@ -201,7 +302,26 @@ final _menu = <_MenuGroup>[
       ),
       _MenuItem(
         icon: Icons.text_fields,
-        title: 'Selectable Text',
+        title: 'Super iOS Textfield',
+        pageBuilder: (context) {
+          return SuperIOSTextFieldDemo();
+        },
+      ),
+      _MenuItem(
+        icon: Icons.text_fields,
+        title: 'Super Android Textfield',
+        pageBuilder: (context) {
+          return SuperAndroidTextFieldDemo();
+        },
+      ),
+    ],
+  ),
+  _MenuGroup(
+    title: 'INFRASTRUCTURE',
+    items: [
+      _MenuItem(
+        icon: Icons.text_fields,
+        title: 'SuperSelectableText',
         pageBuilder: (context) {
           return SelectableTextDemo();
         },
@@ -215,23 +335,42 @@ final _menu = <_MenuGroup>[
       ),
     ],
   ),
+  _MenuGroup(
+    title: 'FLUTTER BEHAVIOR',
+    items: [
+      _MenuItem(
+        icon: Icons.text_fields,
+        title: 'Regular TextField',
+        pageBuilder: (context) {
+          return FlutterTextFieldDemo();
+        },
+      ),
+      _MenuItem(
+        icon: Icons.text_fields,
+        title: 'Basic TextInputClient',
+        pageBuilder: (context) {
+          return BasicTextInputClientDemo();
+        },
+      ),
+    ],
+  ),
 ];
 
 class _MenuGroup {
   const _MenuGroup({
     this.title,
-    @required this.items,
+    required this.items,
   });
 
-  final String title;
+  final String? title;
   final List<_MenuItem> items;
 }
 
 class _MenuItem {
   const _MenuItem({
-    @required this.icon,
-    @required this.title,
-    @required this.pageBuilder,
+    required this.icon,
+    required this.title,
+    required this.pageBuilder,
   });
 
   final IconData icon;
@@ -241,20 +380,20 @@ class _MenuItem {
 
 class _DrawerHeader extends StatelessWidget {
   const _DrawerHeader({
-    Key key,
-    @required this.title,
+    Key? key,
+    required this.title,
   }) : super(key: key);
 
-  final String title;
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 16, bottom: 4),
       child: Text(
-        title,
-        style: TextStyle(
-          color: const Color(0xFF444444),
+        title!,
+        style: const TextStyle(
+          color: Color(0xFF444444),
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),
@@ -265,11 +404,11 @@ class _DrawerHeader extends StatelessWidget {
 
 class _DrawerButton extends StatelessWidget {
   const _DrawerButton({
-    Key key,
-    @required this.icon,
-    @required this.title,
+    Key? key,
+    required this.icon,
+    required this.title,
     this.isSelected = false,
-    @required this.onPressed,
+    required this.onPressed,
   }) : super(key: key);
 
   final IconData icon;
@@ -295,18 +434,19 @@ class _DrawerButton extends StatelessWidget {
               return Colors.transparent;
             }),
             // splashFactory: NoSplash.splashFactory,
-            foregroundColor:
-                MaterialStateColor.resolveWith((states) => isSelected ? Colors.white : const Color(0xFFBBBBBB)),
+            foregroundColor: MaterialStateColor.resolveWith((states) =>
+                isSelected ? Colors.white : const Color(0xFFBBBBBB)),
             elevation: MaterialStateProperty.resolveWith((states) => 0),
-            padding: MaterialStateProperty.resolveWith((states) => const EdgeInsets.all(16))),
+            padding: MaterialStateProperty.resolveWith(
+                (states) => const EdgeInsets.all(16))),
         onPressed: isSelected ? null : onPressed,
         child: Row(
           children: [
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Icon(
               icon,
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Expanded(
               child: Text(title),
             ),

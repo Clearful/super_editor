@@ -1,18 +1,6 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:super_editor/src/core/document.dart';
-import 'package:super_editor/src/core/document_composer.dart';
-import 'package:super_editor/src/core/document_editor.dart';
-import 'package:super_editor/src/core/document_selection.dart';
-import 'package:super_editor/src/core/edit_context.dart';
-import 'package:super_editor/src/default_editor/attributions.dart';
-import 'package:super_editor/src/default_editor/box_component.dart';
-import 'package:super_editor/src/default_editor/document_interaction.dart';
-import 'package:super_editor/src/default_editor/horizontal_rule.dart';
-import 'package:super_editor/src/default_editor/paragraph.dart';
-import 'package:super_editor/src/default_editor/text.dart';
-import 'package:super_editor/src/infrastructure/attributed_text.dart';
+import 'package:super_editor/super_editor.dart';
 
 import '../_document_test_tools.dart';
 import '../_text_entry_test_tools.dart';
@@ -33,18 +21,18 @@ void main() {
 
         final command = ToggleTextAttributionsCommand(
           documentSelection: DocumentSelection(
-            base: DocumentPosition(
+            base: const DocumentPosition(
               nodeId: 'paragraph',
-              nodePosition: TextPosition(offset: 1),
+              nodePosition: TextNodePosition(offset: 1),
             ),
-            extent: DocumentPosition(
+            extent: const DocumentPosition(
               nodeId: 'paragraph',
               // IMPORTANT: we want to end the bold at the 'd' character but
               // the TextPosition indexes the ' ' after the 'd'. This is because
               // TextPosition references the character after the selection, not
               // the last character in the selection. See the TextPosition class
               // definition for more information.
-              nodePosition: TextPosition(offset: 13),
+              nodePosition: TextNodePosition(offset: 13),
             ),
           ),
           attributions: {boldAttribution},
@@ -65,9 +53,9 @@ void main() {
         final editContext = _createEditContext();
 
         // Press just the meta key.
-        var result = insertCharacterInTextComposable(
+        var result = anyCharacterToInsertInTextContent(
           editContext: editContext,
-          keyEvent: FakeRawKeyEvent(
+          keyEvent: const FakeRawKeyEvent(
             data: FakeRawKeyEventData(
               logicalKey: LogicalKeyboardKey.meta,
               physicalKey: PhysicalKeyboardKey.metaLeft,
@@ -81,9 +69,9 @@ void main() {
         expect(result, ExecutionInstruction.continueExecution);
 
         // Press "a" + meta key
-        result = insertCharacterInTextComposable(
+        result = anyCharacterToInsertInTextContent(
           editContext: editContext,
-          keyEvent: FakeRawKeyEvent(
+          keyEvent: const FakeRawKeyEvent(
             data: FakeRawKeyEventData(
               logicalKey: LogicalKeyboardKey.keyA,
               physicalKey: PhysicalKeyboardKey.keyA,
@@ -101,9 +89,9 @@ void main() {
         final editContext = _createEditContext();
 
         // Try to type a character.
-        var result = insertCharacterInTextComposable(
+        var result = anyCharacterToInsertInTextContent(
           editContext: editContext,
-          keyEvent: FakeRawKeyEvent(
+          keyEvent: const FakeRawKeyEvent(
             data: FakeRawKeyEventData(
               logicalKey: LogicalKeyboardKey.keyA,
               physicalKey: PhysicalKeyboardKey.keyA,
@@ -128,20 +116,20 @@ void main() {
 
         // Select multiple characters in the paragraph
         editContext.composer.selection = DocumentSelection(
-          base: DocumentPosition(
+          base: const DocumentPosition(
             nodeId: 'paragraph',
-            nodePosition: TextPosition(offset: 0),
+            nodePosition: TextNodePosition(offset: 0),
           ),
-          extent: DocumentPosition(
+          extent: const DocumentPosition(
             nodeId: 'paragraph',
-            nodePosition: TextPosition(offset: 1),
+            nodePosition: TextNodePosition(offset: 1),
           ),
         );
 
         // Try to type a character.
-        var result = insertCharacterInTextComposable(
+        var result = anyCharacterToInsertInTextContent(
           editContext: editContext,
-          keyEvent: FakeRawKeyEvent(
+          keyEvent: const FakeRawKeyEvent(
             data: FakeRawKeyEventData(
               logicalKey: LogicalKeyboardKey.keyA,
               physicalKey: PhysicalKeyboardKey.keyA,
@@ -162,17 +150,17 @@ void main() {
             );
 
         // Select the horizontal rule node.
-        editContext.composer.selection = DocumentSelection.collapsed(
+        editContext.composer.selection = const DocumentSelection.collapsed(
           position: DocumentPosition(
             nodeId: 'horizontal_rule',
-            nodePosition: BinaryPosition.notIncluded(),
+            nodePosition: BinaryNodePosition.notIncluded(),
           ),
         );
 
         // Try to type a character.
-        var result = insertCharacterInTextComposable(
+        var result = anyCharacterToInsertInTextContent(
           editContext: editContext,
-          keyEvent: FakeRawKeyEvent(
+          keyEvent: const FakeRawKeyEvent(
             data: FakeRawKeyEventData(
               logicalKey: LogicalKeyboardKey.keyA,
               physicalKey: PhysicalKeyboardKey.keyA,
@@ -196,17 +184,17 @@ void main() {
             );
 
         // Select multiple characters in the paragraph
-        editContext.composer.selection = DocumentSelection.collapsed(
+        editContext.composer.selection = const DocumentSelection.collapsed(
           position: DocumentPosition(
             nodeId: 'paragraph',
-            nodePosition: TextPosition(offset: 0),
+            nodePosition: TextNodePosition(offset: 0),
           ),
         );
 
         // Press the "alt" key
-        var result = insertCharacterInTextComposable(
+        var result = anyCharacterToInsertInTextContent(
           editContext: editContext,
-          keyEvent: FakeRawKeyEvent(
+          keyEvent: const FakeRawKeyEvent(
             character: null,
             data: FakeRawKeyEventData(
               logicalKey: LogicalKeyboardKey.alt,
@@ -220,9 +208,9 @@ void main() {
         expect(result, ExecutionInstruction.continueExecution);
 
         // Press the "enter" key
-        result = insertCharacterInTextComposable(
+        result = anyCharacterToInsertInTextContent(
           editContext: editContext,
-          keyEvent: FakeRawKeyEvent(
+          keyEvent: const FakeRawKeyEvent(
             character: '', // Empirically, pressing enter sends '' as the character instead of null
             data: FakeRawKeyEventData(
               logicalKey: LogicalKeyboardKey.enter,
@@ -247,17 +235,17 @@ void main() {
             );
 
         // Select multiple characters in the paragraph
-        editContext.composer.selection = DocumentSelection.collapsed(
+        editContext.composer.selection = const DocumentSelection.collapsed(
           position: DocumentPosition(
             nodeId: 'paragraph',
-            nodePosition: TextPosition(offset: 0),
+            nodePosition: TextNodePosition(offset: 0),
           ),
         );
 
         // Press the "a" key
-        var result = insertCharacterInTextComposable(
+        var result = anyCharacterToInsertInTextContent(
           editContext: editContext,
-          keyEvent: FakeRawKeyEvent(
+          keyEvent: const FakeRawKeyEvent(
             character: 'a',
             data: FakeRawKeyEventData(
               logicalKey: LogicalKeyboardKey.keyA,
@@ -286,17 +274,17 @@ void main() {
             );
 
         // Select multiple characters in the paragraph
-        editContext.composer.selection = DocumentSelection.collapsed(
+        editContext.composer.selection = const DocumentSelection.collapsed(
           position: DocumentPosition(
             nodeId: 'paragraph',
-            nodePosition: TextPosition(offset: 0),
+            nodePosition: TextNodePosition(offset: 0),
           ),
         );
 
         // Type a non-English character
-        var result = insertCharacterInTextComposable(
+        var result = anyCharacterToInsertInTextContent(
           editContext: editContext,
-          keyEvent: FakeRawKeyEvent(
+          keyEvent: const FakeRawKeyEvent(
             character: 'ß',
             data: FakeRawKeyEventData(
               logicalKey: LogicalKeyboardKey.keyA,
@@ -325,5 +313,10 @@ EditContext _createEditContext() {
     editor: documentEditor,
     getDocumentLayout: () => fakeLayout,
     composer: composer,
+    commonOps: CommonEditorOperations(
+      editor: documentEditor,
+      composer: composer,
+      documentLayoutResolver: () => fakeLayout,
+    ),
   );
 }

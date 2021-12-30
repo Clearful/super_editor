@@ -1,8 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:super_editor/src/core/document_layout.dart';
 import 'package:super_editor/src/core/edit_context.dart';
 import 'package:super_editor/src/infrastructure/_logging.dart';
@@ -10,8 +7,7 @@ import 'package:super_editor/src/infrastructure/attributed_text.dart';
 
 import '../core/document.dart';
 import '../core/document_editor.dart';
-import '../core/document_selection.dart';
-import 'document_interaction.dart';
+import 'document_input_keyboard.dart';
 import 'paragraph.dart';
 import 'styles.dart';
 import 'text.dart';
@@ -69,6 +65,23 @@ class ListItemNode extends TextNode {
       notifyListeners();
     }
   }
+
+  @override
+  bool hasEquivalentContent(DocumentNode other) {
+    return other is ListItemNode && type == other.type && indent == other.indent && text == other.text;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      super == other &&
+          other is ListItemNode &&
+          runtimeType == other.runtimeType &&
+          type == other.type &&
+          _indent == other._indent;
+
+  @override
+  int get hashCode => super.hashCode ^ type.hashCode ^ _indent.hashCode;
 }
 
 enum ListItemType {
@@ -111,13 +124,13 @@ class UnorderedListItemComponent extends StatelessWidget {
   Widget build(BuildContext context) {
     final indentSpace = indentExtent * (indent + 1);
     final firstLineHeight = styleBuilder({}).fontSize;
-    final manualVerticalAdjustment = 2.0;
+    const manualVerticalAdjustment = 2.0;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          margin: EdgeInsets.only(top: manualVerticalAdjustment),
+          margin: const EdgeInsets.only(top: manualVerticalAdjustment),
           decoration: BoxDecoration(
             border: Border.all(width: 1, color: showDebugPaint ? Colors.grey : Colors.transparent),
           ),
@@ -198,7 +211,7 @@ class OrderedListItemComponent extends StatelessWidget {
   Widget build(BuildContext context) {
     final indentSpace = indentExtent * (indent + 1);
     final firstLineHeight = styleBuilder({}).fontSize!;
-    final manualVerticalAdjustment = 2.0;
+    const manualVerticalAdjustment = 2.0;
     final manualHeightAdjustment = firstLineHeight * 0.15;
 
     return Row(
@@ -207,7 +220,7 @@ class OrderedListItemComponent extends StatelessWidget {
         Container(
           width: indentSpace,
           height: firstLineHeight + manualHeightAdjustment,
-          margin: EdgeInsets.only(top: manualVerticalAdjustment),
+          margin: const EdgeInsets.only(top: manualVerticalAdjustment),
           decoration: BoxDecoration(
             border: Border.all(width: 1, color: showDebugPaint ? Colors.grey : Colors.transparent),
           ),
@@ -316,10 +329,7 @@ class ConvertListItemToParagraphCommand implements EditorCommand {
       text: listItem.text,
       metadata: paragraphMetadata ?? {},
     );
-    final listItemIndex = document.getNodeIndex(listItem);
-    transaction
-      ..deleteNodeAt(listItemIndex)
-      ..insertNodeAt(listItemIndex, newParagraphNode);
+    transaction.replaceNode(oldNode: listItem, newNode: newParagraphNode);
   }
 }
 
@@ -342,10 +352,7 @@ class ConvertParagraphToListItemCommand implements EditorCommand {
       itemType: type,
       text: paragraphNode.text,
     );
-    final paragraphIndex = document.getNodeIndex(paragraphNode);
-    transaction
-      ..deleteNodeAt(paragraphIndex)
-      ..insertNodeAt(paragraphIndex, newListItemNode);
+    transaction.replaceNode(oldNode: paragraphNode, newNode: newListItemNode);
   }
 }
 
@@ -367,10 +374,7 @@ class ChangeListItemTypeCommand implements EditorCommand {
       itemType: newType,
       text: existingListItem.text,
     );
-    final nodeIndex = document.getNodeIndex(existingListItem);
-    transaction
-      ..deleteNodeAt(nodeIndex)
-      ..insertNodeAt(nodeIndex, newListItemNode);
+    transaction.replaceNode(oldNode: existingListItem, newNode: newListItemNode);
   }
 }
 
@@ -427,7 +431,7 @@ class SplitListItemCommand implements EditorCommand {
   }
 }
 
-ExecutionInstruction indentListItemWhenTabIsPressed({
+ExecutionInstruction tabToIndentListItem({
   required EditContext editContext,
   required RawKeyEvent keyEvent,
 }) {
@@ -438,32 +442,12 @@ ExecutionInstruction indentListItemWhenTabIsPressed({
     return ExecutionInstruction.continueExecution;
   }
 
-  if (editContext.composer.selection == null) {
-    return ExecutionInstruction.continueExecution;
-  }
+  final wasIndented = editContext.commonOps.indentListItem();
 
-  final node = editContext.editor.document.getNodeById(editContext.composer.selection!.extent.nodeId);
-  if (node is! ListItemNode) {
-    return ExecutionInstruction.continueExecution;
-  }
-
-  if (!editContext.composer.selection!.isCollapsed) {
-    return ExecutionInstruction.continueExecution;
-  }
-
-  final textPosition = editContext.composer.selection!.extent.nodePosition;
-  if (textPosition is! TextPosition || textPosition.offset > 0) {
-    return ExecutionInstruction.continueExecution;
-  }
-
-  editContext.editor.executeCommand(
-    IndentListItemCommand(nodeId: node.id),
-  );
-
-  return ExecutionInstruction.haltExecution;
+  return wasIndented ? ExecutionInstruction.haltExecution : ExecutionInstruction.continueExecution;
 }
 
-ExecutionInstruction unindentListItemWhenShiftTabIsPressed({
+ExecutionInstruction shiftTabToUnIndentListItem({
   required EditContext editContext,
   required RawKeyEvent keyEvent,
 }) {
@@ -474,28 +458,12 @@ ExecutionInstruction unindentListItemWhenShiftTabIsPressed({
     return ExecutionInstruction.continueExecution;
   }
 
-  if (editContext.composer.selection == null) {
-    return ExecutionInstruction.continueExecution;
-  }
+  final wasIndented = editContext.commonOps.unindentListItem();
 
-  final node = editContext.editor.document.getNodeById(editContext.composer.selection!.extent.nodeId);
-  if (node is! ListItemNode) {
-    return ExecutionInstruction.continueExecution;
-  }
-
-  final textPosition = editContext.composer.selection!.extent.nodePosition;
-  if (textPosition is! TextPosition) {
-    return ExecutionInstruction.continueExecution;
-  }
-
-  editContext.editor.executeCommand(
-    UnIndentListItemCommand(nodeId: node.id),
-  );
-
-  return ExecutionInstruction.haltExecution;
+  return wasIndented ? ExecutionInstruction.haltExecution : ExecutionInstruction.continueExecution;
 }
 
-ExecutionInstruction unindentListItemWhenBackspaceIsPressed({
+ExecutionInstruction backspaceToUnIndentListItem({
   required EditContext editContext,
   required RawKeyEvent keyEvent,
 }) {
@@ -506,26 +474,21 @@ ExecutionInstruction unindentListItemWhenBackspaceIsPressed({
   if (editContext.composer.selection == null) {
     return ExecutionInstruction.continueExecution;
   }
+  if (!editContext.composer.selection!.isCollapsed) {
+    return ExecutionInstruction.continueExecution;
+  }
 
   final node = editContext.editor.document.getNodeById(editContext.composer.selection!.extent.nodeId);
   if (node is! ListItemNode) {
     return ExecutionInstruction.continueExecution;
   }
-
-  if (!editContext.composer.selection!.isCollapsed) {
+  if ((editContext.composer.selection!.extent.nodePosition as TextPosition).offset > 0) {
     return ExecutionInstruction.continueExecution;
   }
 
-  final textPosition = editContext.composer.selection!.extent.nodePosition;
-  if (textPosition is! TextPosition || textPosition.offset > 0) {
-    return ExecutionInstruction.continueExecution;
-  }
+  final wasIndented = editContext.commonOps.unindentListItem();
 
-  editContext.editor.executeCommand(
-    UnIndentListItemCommand(nodeId: node.id),
-  );
-
-  return ExecutionInstruction.haltExecution;
+  return wasIndented ? ExecutionInstruction.haltExecution : ExecutionInstruction.continueExecution;
 }
 
 ExecutionInstruction splitListItemWhenEnterPressed({
@@ -536,38 +499,13 @@ ExecutionInstruction splitListItemWhenEnterPressed({
     return ExecutionInstruction.continueExecution;
   }
 
-  if (editContext.composer.selection == null) {
-    return ExecutionInstruction.continueExecution;
-  }
-
-  if (!editContext.composer.selection!.isCollapsed) {
-    return ExecutionInstruction.continueExecution;
-  }
-
   final node = editContext.editor.document.getNodeById(editContext.composer.selection!.extent.nodeId);
   if (node is! ListItemNode) {
     return ExecutionInstruction.continueExecution;
   }
 
-  final newNodeId = DocumentEditor.createNodeId();
-
-  editContext.editor.executeCommand(
-    SplitListItemCommand(
-      nodeId: node.id,
-      splitPosition: editContext.composer.selection!.extent.nodePosition as TextPosition,
-      newNodeId: newNodeId,
-    ),
-  );
-
-  // Place the caret at the beginning of the new paragraph node.
-  editContext.composer.selection = DocumentSelection.collapsed(
-    position: DocumentPosition(
-      nodeId: newNodeId,
-      nodePosition: TextPosition(offset: 0),
-    ),
-  );
-
-  return ExecutionInstruction.haltExecution;
+  final didSplitListItem = editContext.commonOps.insertBlockLevelNewline();
+  return didSplitListItem ? ExecutionInstruction.haltExecution : ExecutionInstruction.continueExecution;
 }
 
 Widget? unorderedListItemBuilder(ComponentContext componentContext) {
@@ -580,7 +518,7 @@ Widget? unorderedListItemBuilder(ComponentContext componentContext) {
     return null;
   }
 
-  final textSelection = componentContext.nodeSelection?.nodeSelection as TextSelection;
+  final textSelection = componentContext.nodeSelection?.nodeSelection as TextSelection?;
   final showCaret = componentContext.showCaret && (componentContext.nodeSelection?.isExtent ?? false);
 
   return UnorderedListItemComponent(
@@ -617,7 +555,7 @@ Widget? orderedListItemBuilder(ComponentContext componentContext) {
     nodeAbove = componentContext.document.getNodeBefore(nodeAbove);
   }
 
-  final textSelection = componentContext.nodeSelection?.nodeSelection as TextSelection;
+  final textSelection = componentContext.nodeSelection?.nodeSelection as TextSelection?;
   final showCaret = componentContext.showCaret && (componentContext.nodeSelection?.isExtent ?? false);
 
   return OrderedListItemComponent(

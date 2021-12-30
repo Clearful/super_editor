@@ -1,15 +1,13 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/src/infrastructure/_logging.dart';
+import 'package:super_editor/super_editor.dart';
 
 import '../core/document.dart';
 import '../core/document_layout.dart';
-import '../core/document_selection.dart';
-import 'document_interaction.dart';
-import 'multi_node_editing.dart';
 
+// ignore: unused_element
 final _log = Logger(scope: 'box_component.dart');
 
 /// Editor layout component that displays content that is either
@@ -18,9 +16,11 @@ final _log = Logger(scope: 'box_component.dart');
 class BoxComponent extends StatefulWidget {
   const BoxComponent({
     Key? key,
+    this.isVisuallySelectable = true,
     required this.child,
   }) : super(key: key);
 
+  final bool isVisuallySelectable;
   final Widget child;
 
   @override
@@ -29,46 +29,46 @@ class BoxComponent extends StatefulWidget {
 
 class _BoxComponentState extends State<BoxComponent> with DocumentComponent {
   @override
-  BinaryPosition getBeginningPosition() {
-    return BinaryPosition.included();
+  BinaryNodePosition getBeginningPosition() {
+    return const BinaryNodePosition.included();
   }
 
   @override
-  BinaryPosition getBeginningPositionNearX(double x) {
-    return BinaryPosition.included();
+  BinaryNodePosition getBeginningPositionNearX(double x) {
+    return const BinaryNodePosition.included();
   }
 
   @override
-  BinaryPosition? movePositionLeft(dynamic currentPosition, [Map<String, dynamic>? movementModifiers]) {
+  BinaryNodePosition? movePositionLeft(dynamic currentPosition, [Set<MovementModifier>? movementModifiers]) {
     // BoxComponents don't support internal movement.
     return null;
   }
 
   @override
-  BinaryPosition? movePositionRight(dynamic currentPosition, [Map<String, dynamic>? movementModifiers]) {
+  BinaryNodePosition? movePositionRight(dynamic currentPosition, [Set<MovementModifier>? movementModifiers]) {
     // BoxComponents don't support internal movement.
     return null;
   }
 
   @override
-  BinaryPosition? movePositionUp(dynamic currentPosition) {
+  BinaryNodePosition? movePositionUp(dynamic currentPosition) {
     // BoxComponents don't support internal movement.
     return null;
   }
 
   @override
-  BinaryPosition? movePositionDown(dynamic currentPosition) {
+  BinaryNodePosition? movePositionDown(dynamic currentPosition) {
     // BoxComponents don't support internal movement.
     return null;
   }
 
   @override
-  BinarySelection? getCollapsedSelectionAt(nodePosition) {
-    if (nodePosition is! BinaryPosition) {
-      return null;
+  BinarySelection getCollapsedSelectionAt(nodePosition) {
+    if (nodePosition is! BinaryNodePosition) {
+      throw Exception('The given nodePosition ($nodePosition) is not compatible with BoxComponent');
     }
 
-    return BinarySelection.all();
+    return const BinarySelection.all();
   }
 
   @override
@@ -77,18 +77,18 @@ class _BoxComponentState extends State<BoxComponent> with DocumentComponent {
   }
 
   @override
-  BinaryPosition getEndPosition() {
-    return BinaryPosition.included();
+  BinaryNodePosition getEndPosition() {
+    return const BinaryNodePosition.included();
   }
 
   @override
-  getEndPositionNearX(double x) {
-    return BinaryPosition.included();
+  BinaryNodePosition getEndPositionNearX(double x) {
+    return const BinaryNodePosition.included();
   }
 
   @override
   Offset getOffsetForPosition(nodePosition) {
-    if (nodePosition is! BinaryPosition) {
+    if (nodePosition is! BinaryNodePosition) {
       throw Exception('Expected nodePosition of type BinaryPosition but received: $nodePosition');
     }
 
@@ -98,7 +98,7 @@ class _BoxComponentState extends State<BoxComponent> with DocumentComponent {
 
   @override
   Rect getRectForPosition(dynamic nodePosition) {
-    if (nodePosition is! BinaryPosition) {
+    if (nodePosition is! BinaryNodePosition) {
       throw Exception('Expected nodePosition of type BinaryPosition but received: $nodePosition');
     }
 
@@ -108,10 +108,10 @@ class _BoxComponentState extends State<BoxComponent> with DocumentComponent {
 
   @override
   Rect getRectForSelection(dynamic basePosition, dynamic extentPosition) {
-    if (basePosition is! BinaryPosition) {
+    if (basePosition is! BinaryNodePosition) {
       throw Exception('Expected nodePosition of type BinaryPosition but received: $basePosition');
     }
-    if (extentPosition is! BinaryPosition) {
+    if (extentPosition is! BinaryNodePosition) {
       throw Exception('Expected nodePosition of type BinaryPosition but received: $extentPosition');
     }
 
@@ -120,28 +120,34 @@ class _BoxComponentState extends State<BoxComponent> with DocumentComponent {
   }
 
   @override
-  BinaryPosition getPositionAtOffset(Offset localOffset) {
-    return BinaryPosition.included();
+  BinaryNodePosition getPositionAtOffset(Offset localOffset) {
+    return const BinaryNodePosition.included();
   }
 
   @override
-  BinarySelection? getSelectionBetween({basePosition, extentPosition}) {
-    if (basePosition is! BinaryPosition || extentPosition is! BinaryPosition) {
-      return null;
+  BinarySelection getSelectionBetween({required basePosition, required extentPosition}) {
+    if (basePosition is! BinaryNodePosition) {
+      throw Exception('The given basePosition ($basePosition) is not compatible with BoxComponent');
+    }
+    if (extentPosition is! BinaryNodePosition) {
+      throw Exception('The given extentPosition ($extentPosition) is not compatible with BoxComponent');
     }
 
-    return BinarySelection.all();
+    return const BinarySelection.all();
   }
 
   @override
   BinarySelection getSelectionInRange(Offset localBaseOffset, Offset localExtentOffset) {
-    return BinarySelection.all();
+    return const BinarySelection.all();
   }
 
   @override
   BinarySelection getSelectionOfEverything() {
-    return BinarySelection.all();
+    return const BinarySelection.all();
   }
+
+  @override
+  bool isVisualSelectionSupported() => widget.isVisuallySelectable;
 
   @override
   Widget build(BuildContext context) {
@@ -151,16 +157,16 @@ class _BoxComponentState extends State<BoxComponent> with DocumentComponent {
 
 /// Document position for a [DocumentNode] that is either fully selected
 /// or unselected, like an image or a horizontal rule.
-class BinaryPosition {
-  const BinaryPosition.included() : isIncluded = true;
-  const BinaryPosition.notIncluded() : isIncluded = false;
+class BinaryNodePosition implements NodePosition {
+  const BinaryNodePosition.included() : isIncluded = true;
+  const BinaryNodePosition.notIncluded() : isIncluded = false;
 
   final bool isIncluded;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is BinaryPosition && runtimeType == other.runtimeType && isIncluded == other.isIncluded;
+      other is BinaryNodePosition && runtimeType == other.runtimeType && isIncluded == other.isIncluded;
 
   @override
   int get hashCode => isIncluded.hashCode;
@@ -169,16 +175,16 @@ class BinaryPosition {
 /// Document selection for a [DocumentNode] that is either fully selected
 /// or unselected, like an image or a horizontal rule.
 ///
-/// Technically, a [BinarySelection] represents the same thing as a [BinaryPosition],
+/// Technically, a [BinarySelection] represents the same thing as a [BinaryNodePosition],
 /// because a binary selectable node is either completely selected or unselected.
 /// However, participation within a generic editor requires that binary selectable
 /// nodes behave like all other nodes, i.e., offering a "position" type and a
 /// "selection" type.
-class BinarySelection {
-  const BinarySelection.all() : position = const BinaryPosition.included();
-  const BinarySelection.none() : position = const BinaryPosition.notIncluded();
+class BinarySelection implements NodeSelection {
+  const BinarySelection.all() : position = const BinaryNodePosition.included();
+  const BinarySelection.none() : position = const BinaryNodePosition.notIncluded();
 
-  final BinaryPosition position;
+  final BinaryNodePosition position;
 
   /// A [BinarySelection] is always collapsed because there is no distinction
   /// between the "beginning" or "end" of a [BinarySelection], therefore, there
@@ -192,99 +198,4 @@ class BinarySelection {
 
   @override
   int get hashCode => position.hashCode;
-}
-
-/// Deletes the [DocumentNode] behind a selected [BoxComponent], if the
-/// current [DocumentSelection] is collapsed on a [BinarySelection].
-ExecutionInstruction deleteBoxWhenBackspaceOrDeleteIsPressed({
-  required EditContext editContext,
-  required RawKeyEvent keyEvent,
-}) {
-  if (keyEvent.logicalKey != LogicalKeyboardKey.backspace && keyEvent.logicalKey != LogicalKeyboardKey.delete) {
-    return ExecutionInstruction.continueExecution;
-  }
-  if (editContext.composer.selection == null) {
-    return ExecutionInstruction.continueExecution;
-  }
-  if (!editContext.composer.selection!.isCollapsed) {
-    return ExecutionInstruction.continueExecution;
-  }
-  if (editContext.composer.selection!.extent.nodePosition is! BinaryPosition) {
-    return ExecutionInstruction.continueExecution;
-  }
-  if (!(editContext.composer.selection!.extent.nodePosition as BinaryPosition).isIncluded) {
-    return ExecutionInstruction.continueExecution;
-  }
-
-  _log.log('deleteBoxWhenBackspaceOrDeleteIsPressed', 'Deleting a box component');
-
-  final node = editContext.editor.document.getNode(editContext.composer.selection!.extent);
-  if (node == null) {
-    throw Exception(
-        'Tried to delete a node but the selection extent doesn\'t exist in the document. Extent node: ${editContext.composer.selection!.extent}');
-  }
-  final deletedNodeIndex = editContext.editor.document.getNodeIndex(node);
-
-  editContext.editor.executeCommand(
-    DeleteSelectionCommand(
-      documentSelection: editContext.composer.selection!,
-    ),
-  );
-
-  final newSelectionPosition = _getAnotherSelectionAfterNodeDeletion(
-    document: editContext.editor.document,
-    documentLayout: editContext.documentLayout,
-    deletedNodeIndex: deletedNodeIndex,
-  );
-  _log.log('deleteBoxWhenBackspaceOrDeleteIsPressed', 'New selection position after deletion: $newSelectionPosition');
-
-  editContext.composer.selection = newSelectionPosition != null
-      ? DocumentSelection.collapsed(
-          position: newSelectionPosition,
-        )
-      : null;
-
-  return ExecutionInstruction.haltExecution;
-}
-
-DocumentPosition? _getAnotherSelectionAfterNodeDeletion({
-  required Document document,
-  required DocumentLayout documentLayout,
-  required int deletedNodeIndex,
-}) {
-  if (deletedNodeIndex > 0) {
-    final newSelectionNodeIndex = deletedNodeIndex - 1;
-    final newSelectionNode = document.getNodeAt(newSelectionNodeIndex);
-    if (newSelectionNode == null) {
-      throw Exception(
-          'Tried to access document node at index ${newSelectionNodeIndex} but the document returned null.');
-    }
-    final component = documentLayout.getComponentByNodeId(newSelectionNode.id);
-    if (component == null) {
-      throw Exception('Couldn\'t find editor component for node: ${newSelectionNode.id}');
-    }
-    return DocumentPosition(
-      nodeId: newSelectionNode.id,
-      nodePosition: component.getEndPosition(),
-    );
-  } else if (document.nodes.isNotEmpty) {
-    // There is no node above the deleted node. It's at the top
-    // of the document. Try to place the selection in whatever
-    // is now the first node in the document.
-    final newSelectionNode = document.getNodeAt(0);
-    if (newSelectionNode == null) {
-      throw Exception('Could not obtain the first node in a non-empty document.');
-    }
-    final component = documentLayout.getComponentByNodeId(newSelectionNode.id);
-    if (component == null) {
-      throw Exception('Couldn\'t find editor component for node: ${newSelectionNode.id}');
-    }
-    return DocumentPosition(
-      nodeId: newSelectionNode.id,
-      nodePosition: component.getBeginningPosition(),
-    );
-  } else {
-    // The document is empty. Null out the position.
-    return null;
-  }
 }

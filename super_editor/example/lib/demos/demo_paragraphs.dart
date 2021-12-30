@@ -9,14 +9,14 @@ class ParagraphsDemo extends StatefulWidget {
 }
 
 class _ParagraphsDemoState extends State<ParagraphsDemo> {
-  Document _doc;
-  DocumentEditor _docEditor;
+  late Document _doc;
+  late DocumentEditor _docEditor;
 
   @override
   void initState() {
     super.initState();
     _doc = _createInitialDocument();
-    _docEditor = DocumentEditor(document: _doc);
+    _docEditor = DocumentEditor(document: _doc as MutableDocument);
   }
 
   @override
@@ -26,7 +26,7 @@ class _ParagraphsDemoState extends State<ParagraphsDemo> {
 
   @override
   Widget build(BuildContext context) {
-    return Editor.standard(
+    return SuperEditor(
       editor: _docEditor,
       maxWidth: 600,
       padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 24),

@@ -26,6 +26,7 @@ class DefaultDocumentLayout extends StatefulWidget {
     this.documentSelection,
     required this.showCaret,
     required this.componentBuilders,
+    this.margin = EdgeInsets.zero,
     this.componentVerticalSpacing = 16,
     this.extensions = const {},
     this.showDebugPaint = false,
@@ -48,6 +49,9 @@ class DefaultDocumentLayout extends StatefulWidget {
   /// `document` should have a `ComponentBuilder` that knows how to
   /// render that piece of content.
   final List<ComponentBuilder> componentBuilders;
+
+  /// Space added around the outside of the document.
+  final EdgeInsetsGeometry margin;
 
   /// The space between sequential components.
   final double componentVerticalSpacing;
@@ -88,6 +92,10 @@ class _DefaultDocumentLayoutState extends State<DefaultDocumentLayout> implement
     _log.log('getDocumentPositionAtOffset', ' - found node at position: $component');
     final componentOffset = _componentOffset(componentBox, documentOffset);
     final componentPosition = component.getPositionAtOffset(componentOffset);
+
+    if (componentPosition == null) {
+      return null;
+    }
 
     final selectionAtOffset = DocumentPosition(
       nodeId: _nodeIdsToComponentKeys.entries.firstWhere((element) => element.value == componentKey).key,
@@ -379,18 +387,26 @@ class _DefaultDocumentLayoutState extends State<DefaultDocumentLayout> implement
   }
 
   @override
+  Offset getGlobalOffsetFromDocumentOffset(Offset documentOffset) {
+    return (context.findRenderObject() as RenderBox).localToGlobal(documentOffset);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final docComponents = _buildDocComponents();
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final docComponent in docComponents) ...[
-          docComponent,
-          SizedBox(height: widget.componentVerticalSpacing),
+    return Padding(
+      padding: widget.margin,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final docComponent in docComponents) ...[
+            docComponent,
+            SizedBox(height: widget.componentVerticalSpacing),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -428,6 +444,7 @@ class _DefaultDocumentLayoutState extends State<DefaultDocumentLayout> implement
       final component = _buildComponent(ComponentContext(
         context: context,
         document: widget.document,
+        documentSelection: widget.documentSelection,
         documentNode: docNode,
         componentKey: componentKey,
         showCaret: widget.showCaret,

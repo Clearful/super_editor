@@ -10,8 +10,8 @@ class _AttributedTextDemoState extends State<AttributedTextDemo> {
   final List<TextRange> _boldRanges = [];
   final List<TextRange> _italicsRanges = [];
   final List<TextRange> _strikethroughRanges = [];
-  TextSpan _richText;
-  String _plainText;
+  TextSpan? _richText;
+  late String _plainText;
 
   @override
   void initState() {
@@ -35,37 +35,29 @@ class _AttributedTextDemoState extends State<AttributedTextDemo> {
     }
 
     setState(() {
-      _richText = _text.computeTextSpan((Set<dynamic> attributions) {
+      _richText = _text.computeTextSpan((Set<Attribution> attributions) {
         TextStyle newStyle = const TextStyle(
           color: Colors.black,
           fontSize: 30,
         );
         for (final attribution in attributions) {
-          if (attribution is! String) {
-            continue;
-          }
-
-          switch (attribution) {
-            case 'bold':
-              newStyle = newStyle.copyWith(
-                fontWeight: FontWeight.bold,
-              );
-              break;
-            case 'italics':
-              newStyle = newStyle.copyWith(
-                fontStyle: FontStyle.italic,
-              );
-              break;
-            case 'strikethrough':
-              newStyle = newStyle.copyWith(
-                decoration: TextDecoration.lineThrough,
-              );
-              break;
+          if (attribution == boldAttribution) {
+            newStyle = newStyle.copyWith(
+              fontWeight: FontWeight.bold,
+            );
+          } else if (attribution == italicsAttribution) {
+            newStyle = newStyle.copyWith(
+              fontStyle: FontStyle.italic,
+            );
+          } else if (attribution == strikethroughAttribution) {
+            newStyle = newStyle.copyWith(
+              decoration: TextDecoration.lineThrough,
+            );
           }
         }
         return newStyle;
       });
-      _plainText = _richText.toPlainText();
+      _plainText = _richText!.toPlainText();
     });
   }
 
@@ -76,19 +68,19 @@ class _AttributedTextDemoState extends State<AttributedTextDemo> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 20.0),
+          const Padding(
+            padding: EdgeInsets.only(left: 20.0),
             child: Text(
               'AttributedText',
               style: TextStyle(
-                color: const Color(0xFF888888),
+                color: Color(0xFF888888),
                 fontSize: 32,
               ),
             ),
           ),
-          SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: 20.0),
+          const SizedBox(height: 4),
+          const Padding(
+            padding: EdgeInsets.only(left: 20.0),
             child: Text(
               '''AttributedText is a data structure that supports an arbitrary number of 
 "attribution spans". These attributions can be anything, and mean anything.
@@ -98,21 +90,21 @@ That TextSpan can then be rendered by Flutter, as usual.
 
 Try it yourself by adding and removing attributions to characters in a string...''',
               style: TextStyle(
-                color: const Color(0xFF888888),
+                color: Color(0xFF888888),
                 fontSize: 14,
                 height: 1.4,
                 fontWeight: FontWeight.normal,
               ),
             ),
           ),
-          SizedBox(height: 24),
-          SizedBox(
+          const SizedBox(height: 24),
+          const SizedBox(
             width: 600,
             child: Divider(),
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
           Table(
-            defaultColumnWidth: IntrinsicColumnWidth(),
+            defaultColumnWidth: const IntrinsicColumnWidth(),
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             children: [
               TableRow(
@@ -133,7 +125,7 @@ Try it yourself by adding and removing attributions to characters in a string...
                   _buildCellSelector(_strikethroughRanges),
                 ],
               ),
-              TableRow(
+              const TableRow(
                 children: [
                   SizedBox(height: 24),
                   SizedBox(height: 24),
@@ -142,9 +134,9 @@ Try it yourself by adding and removing attributions to characters in a string...
               TableRow(
                 children: [
                   _buildRowTitle('Attributed Text'),
-                  SelectableText(
+                  SuperSelectableText(
                     key: GlobalKey(),
-                    textSpan: _richText ?? TextSpan(text: 'error'),
+                    textSpan: _richText ?? const TextSpan(text: 'error'),
                   ),
                 ],
               ),
@@ -179,8 +171,8 @@ Try it yourself by adding and removing attributions to characters in a string...
 
 class TextRangeSelector extends StatefulWidget {
   const TextRangeSelector({
-    Key key,
-    @required this.cellCount,
+    Key? key,
+    required this.cellCount,
     this.cellWidth = 10,
     this.cellHeight = 10,
     this.onRangesChange,
@@ -189,15 +181,15 @@ class TextRangeSelector extends StatefulWidget {
   final int cellCount;
   final double cellWidth;
   final double cellHeight;
-  final void Function(List<TextRange>) onRangesChange;
+  final void Function(List<TextRange>)? onRangesChange;
 
   @override
   _TextRangeSelectorState createState() => _TextRangeSelectorState();
 }
 
 class _TextRangeSelectorState extends State<TextRangeSelector> {
-  List<bool> _selectedCells;
-  String _selectionMode;
+  late List<bool> _selectedCells;
+  String? _selectionMode;
 
   @override
   void initState() {
@@ -255,7 +247,7 @@ class _TextRangeSelectorState extends State<TextRangeSelector> {
       ranges.add(TextRange(start: rangeStart, end: widget.cellCount - 1));
     }
 
-    widget.onRangesChange(ranges);
+    widget.onRangesChange!(ranges);
   }
 
   @override

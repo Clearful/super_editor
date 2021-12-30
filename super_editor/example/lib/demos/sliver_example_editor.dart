@@ -5,21 +5,21 @@ import 'package:super_editor/super_editor.dart';
 ///
 /// As the editor has an internal scrolling mechanism, for using it with Slivers
 /// you need to give them a finite height or space to fill itself. That is why
-/// the [Editor] has a [SizedBox] wrapped around it to give a height.
+/// the [SuperEditor] has a [SizedBox] wrapped around it to give a height.
 class SliverExampleEditor extends StatefulWidget {
   @override
   _SliverExampleEditorState createState() => _SliverExampleEditorState();
 }
 
 class _SliverExampleEditorState extends State<SliverExampleEditor> {
-  Document _doc;
-  DocumentEditor _docEditor;
+  late Document _doc;
+  late DocumentEditor _docEditor;
 
   @override
   void initState() {
     super.initState();
     _doc = _createInitialDocument();
-    _docEditor = DocumentEditor(document: _doc);
+    _docEditor = DocumentEditor(document: _doc as MutableDocument);
   }
 
   @override
@@ -32,19 +32,19 @@ class _SliverExampleEditorState extends State<SliverExampleEditor> {
     return CustomScrollView(
       slivers: [
         SliverAppBar(
-          title: Text(
+          title: const Text(
             'Rich Text Editor Sliver Example',
           ),
           expandedHeight: 200.0,
-          leading: SizedBox(),
+          leading: const SizedBox(),
           flexibleSpace: FlexibleSpaceBar(
             background: Image.network(
-              'https://i.ytimg.com/vi/fq4N0hgOWzU/maxresdefault.jpg',
+              'https://i.imgur.com/fSZwM7G.jpg',
               fit: BoxFit.cover,
             ),
           ),
         ),
-        SliverToBoxAdapter(
+        const SliverToBoxAdapter(
           child: Text(
             'Lorem Ipsum Dolor',
             style: TextStyle(
@@ -55,11 +55,9 @@ class _SliverExampleEditorState extends State<SliverExampleEditor> {
           ),
         ),
         SliverToBoxAdapter(
-          child: IntrinsicHeight(
-            child: Editor.standard(
-              editor: _docEditor,
-              padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 24),
-            ),
+          child: SuperEditor(
+            editor: _docEditor,
+            padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 24),
           ),
         ),
         SliverList(
@@ -73,7 +71,7 @@ class _SliverExampleEditorState extends State<SliverExampleEditor> {
                       content: Text(
                         'SliverList element tapped with index $index.',
                       ),
-                      duration: Duration(milliseconds: 500),
+                      duration: const Duration(milliseconds: 500),
                     ),
                   );
                 },
@@ -93,7 +91,7 @@ Document _createInitialDocument() {
     nodes: [
       ImageNode(
         id: DocumentEditor.createNodeId(),
-        imageUrl: 'https://i.ytimg.com/vi/fq4N0hgOWzU/maxresdefault.jpg',
+        imageUrl: 'https://i.imgur.com/fSZwM7G.jpg',
       ),
       ParagraphNode(
         id: DocumentEditor.createNodeId(),

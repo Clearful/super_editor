@@ -1,9 +1,10 @@
 import 'dart:math';
-
+import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:super_editor/src/core/document.dart';
 import 'package:super_editor/src/core/document_layout.dart';
 import 'package:super_editor/src/core/document_selection.dart';
+import 'package:super_editor/src/default_editor/text.dart';
 import 'package:super_editor/src/infrastructure/_logging.dart';
 import 'package:super_editor/src/infrastructure/composable_text.dart';
 
@@ -28,18 +29,48 @@ DocumentSelection? getWordSelection({
     return null;
   }
 
-  final TextSelection wordSelection = (component as TextComposable).getWordSelectionAt(docPosition.nodePosition);
+  final nodePosition = docPosition.nodePosition;
+  if (nodePosition is! TextNodePosition) {
+    return null;
+  }
 
-  _log.log('getWordSelection', ' - word selection: $wordSelection');
+  final TextSelection wordTextSelection = (component as TextComposable).getWordSelectionAt(nodePosition);
+  final wordNodeSelection = TextNodeSelection.fromTextSelection(wordTextSelection);
+
+  _log.log('getWordSelection', ' - word selection: $wordNodeSelection');
   return DocumentSelection(
     base: DocumentPosition(
       nodeId: docPosition.nodeId,
-      nodePosition: wordSelection.base,
+      nodePosition: wordNodeSelection.base,
     ),
     extent: DocumentPosition(
       nodeId: docPosition.nodeId,
-      nodePosition: wordSelection.extent,
+      nodePosition: wordNodeSelection.extent,
     ),
+  );
+}
+
+/// Expands a selection in both directions starting at [textPosition] until
+/// the selection reaches a space, or the end of the available text.
+TextSelection expandPositionToWord({
+  required String text,
+  required TextPosition textPosition,
+}) {
+  if (text.isEmpty) {
+    return const TextSelection.collapsed(offset: -1);
+  }
+
+  int start = min(textPosition.offset, text.length - 1);
+  int end = min(textPosition.offset, text.length - 1);
+  while (start > 0 && text[start] != ' ') {
+    start -= 1;
+  }
+  while (end < text.length && text[end] != ' ') {
+    end += 1;
+  }
+  return TextSelection(
+    baseOffset: start,
+    extentOffset: end,
   );
 }
 
@@ -60,29 +91,37 @@ DocumentSelection? getParagraphSelection({
     return null;
   }
 
-  final TextSelection wordSelection = _expandPositionToParagraph(
-    text: (component as TextComposable).getContiguousTextAt(docPosition.nodePosition),
+  final nodePosition = docPosition.nodePosition;
+  if (nodePosition is! TextNodePosition) {
+    return null;
+  }
+
+  final TextSelection paragraphTextSelection = expandPositionToParagraph(
+    text: (component as TextComposable).getContiguousTextAt(nodePosition),
     textPosition: docPosition.nodePosition as TextPosition,
   );
+  final paragraphNodeSelection = TextNodeSelection.fromTextSelection(paragraphTextSelection);
 
   return DocumentSelection(
     base: DocumentPosition(
       nodeId: docPosition.nodeId,
-      nodePosition: wordSelection.base,
+      nodePosition: paragraphNodeSelection.base,
     ),
     extent: DocumentPosition(
       nodeId: docPosition.nodeId,
-      nodePosition: wordSelection.extent,
+      nodePosition: paragraphNodeSelection.extent,
     ),
   );
 }
 
-TextSelection _expandPositionToParagraph({
+/// Expands a selection in both directions starting at [textPosition] until
+/// the selection reaches a newline, or the end of the available text.
+TextSelection expandPositionToParagraph({
   required String text,
   required TextPosition textPosition,
 }) {
   if (text.isEmpty) {
-    return TextSelection.collapsed(offset: -1);
+    return const TextSelection.collapsed(offset: -1);
   }
 
   int start = min(textPosition.offset, text.length - 1);
@@ -97,4 +136,22 @@ TextSelection _expandPositionToParagraph({
     baseOffset: start,
     extentOffset: end,
   );
+}
+
+// copied from: flutter/lib/src/widgets/editable_text.dart
+// RTL covers Arabic, Hebrew, and other RTL languages such as Urdu,
+// Aramic, Farsi, Dhivehi.
+final RegExp _rtlRegExp = RegExp(r'[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]');
+
+/// Returns the [TextDirection] of the text based on its first non-whitespace character.
+///
+/// The default value is [TextDirection.ltr] for any character that is not from an RTL language.
+TextDirection getParagraphDirection(String text) {
+  text = text.trim();
+
+  if (text.isNotEmpty && _rtlRegExp.hasMatch(String.fromCharCode(text.runes.first))) {
+    return TextDirection.rtl;
+  } else {
+    return TextDirection.ltr;
+  }
 }

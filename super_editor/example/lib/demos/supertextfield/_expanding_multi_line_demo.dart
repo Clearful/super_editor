@@ -23,10 +23,10 @@ class _ExpandingMultiLineTextFieldDemoState extends State<ExpandingMultiLineText
         ),
   );
 
-  GlobalKey<SuperTextFieldState> _textKey;
-  TextFieldDemoRobot _demoRobot;
+  GlobalKey<SuperTextFieldState>? _textKey;
+  late TextFieldDemoRobot _demoRobot;
 
-  FocusNode _focusNode;
+  FocusNode? _focusNode;
 
   @override
   void initState() {
@@ -39,7 +39,7 @@ class _ExpandingMultiLineTextFieldDemoState extends State<ExpandingMultiLineText
       textKey: _textKey,
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
       _startDemo();
     });
   }
@@ -47,13 +47,13 @@ class _ExpandingMultiLineTextFieldDemoState extends State<ExpandingMultiLineText
   @override
   void dispose() {
     _demoRobot.dispose();
-    _focusNode.dispose();
+    _focusNode!.dispose();
     super.dispose();
   }
 
   void _startDemo() {
     _textFieldController
-      ..selection = TextSelection.collapsed(offset: 0)
+      ..selection = const TextSelection.collapsed(offset: 0)
       ..text = AttributedText();
     _demoRobot
       ..typeText(AttributedText(text: 'Hello World!'))
@@ -75,7 +75,7 @@ class _ExpandingMultiLineTextFieldDemoState extends State<ExpandingMultiLineText
       behavior: HitTestBehavior.opaque,
       onTap: () {
         // Remove focus from text field when the user taps anywhere else.
-        _focusNode.unfocus();
+        _focusNode!.unfocus();
       },
       child: Center(
         child: SizedBox(
@@ -102,7 +102,7 @@ class _ExpandingMultiLineTextFieldDemoState extends State<ExpandingMultiLineText
                       );
                     },
                     hintBuilder: (context) {
-                      return Text(
+                      return const Text(
                         'enter some text',
                         style: TextStyle(
                           color: Colors.grey,
@@ -115,10 +115,10 @@ class _ExpandingMultiLineTextFieldDemoState extends State<ExpandingMultiLineText
                   ),
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _restartDemo,
-                child: Text('Restart Demo'),
+                child: const Text('Restart Demo'),
               ),
             ],
           ),

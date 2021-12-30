@@ -1,55 +1,72 @@
-import 'package:flutter/rendering.dart';
+import 'package:super_editor/src/default_editor/text.dart';
 
 /// Contract for widgets that include editable text.
 ///
 /// Examples: paragraphs, list items, images with captions.
-///
-/// The text positions accepted by a [TextComposable] are [dynamic]
-/// rather than [TextPosition]s because a use-case might include
-/// complex text composition, like tables, which might choose to
-/// index positions based on cell IDs, or row and column indices.
 abstract class TextComposable {
-  /// Returns a [TextSelection] that encompasses the entire word
-  /// found at the given [textPosition].
-  ///
-  /// Throws an exception if [textPosition] is not the right type
-  /// for this [TextComposable].
-  TextSelection getWordSelectionAt(dynamic textPosition);
+  /// Returns a [TextNodeSelection] that encompasses the entire word
+  /// found at the given [textNodePosition].
+  TextNodeSelection getWordSelectionAt(TextNodePosition textNodePosition);
 
   /// Returns all text surrounding [textPosition] that is not
   /// broken by white space.
-  ///
-  /// Throws an exception if [textPosition] is not the right type
-  /// for this [TextComposable].
-  String getContiguousTextAt(dynamic textPosition);
+  String getContiguousTextAt(TextNodePosition textPosition);
 
-  /// Returns the text position that corresponds to a text location
-  /// that is one line above the given [textPosition], or [null] if
+  /// Returns the [TextNodePosition] that corresponds to a text location
+  /// that is one line above the given [textNodePosition], or [null] if
   /// there is no position one line up.
-  ///
-  /// Throws an exception if [textPosition] is not the right type
-  /// for this [TextComposable].
-  dynamic getPositionOneLineUp(dynamic textPosition);
+  TextNodePosition? getPositionOneLineUp(TextNodePosition textNodePosition);
 
-  /// Returns the node position that corresponds to a text location
-  /// that is one line below the given [textPosition], or [null] if
+  /// Returns the [TextNodePosition] that corresponds to a text location
+  /// that is one line below the given [textNodePosition], or [null] if
   /// there is no position one line down.
-  ///
-  /// Throws an exception if [textPosition] is not the right type
-  /// for this [TextComposable].
-  dynamic getPositionOneLineDown(dynamic textPosition);
+  TextNodePosition? getPositionOneLineDown(TextNodePosition textNodePosition);
 
   /// Returns the node position that corresponds to the first character
-  /// in the line of text that contains the given [textPosition].
-  ///
-  /// Throws an exception if [textPosition] is not the right type
-  /// for this [TextComposable].
-  dynamic getPositionAtStartOfLine(dynamic textPosition);
+  /// in the line of text that contains the given [textNodePosition].
+  TextNodePosition getPositionAtStartOfLine(TextNodePosition textNodePosition);
 
-  /// Returns the node position that corresponds to the last character
-  /// in the line of text that contains the given [textPosition].
-  ///
-  /// Throws an exception if [textPosition] is not the right type
-  /// for this [TextComposable].
-  dynamic getPositionAtEndOfLine(dynamic textPosition);
+  /// Returns the [TextNodePosition] that corresponds to the last character
+  /// in the line of text that contains the given [textNodePosition].
+  TextNodePosition getPositionAtEndOfLine(TextNodePosition textNodePosition);
+}
+
+/// [TextComposable] that wraps, and defers to, a child [TextComposable].
+///
+/// [ProxyTextComposable] let's you apply decorations to a [childTextComposable]
+/// when those decorations don't alter the layout of the child's text.
+///
+/// Implementers need to provide [childTextComposable].
+mixin ProxyTextComposable implements TextComposable {
+  TextComposable get childTextComposable;
+
+  @override
+  TextNodeSelection getWordSelectionAt(TextNodePosition textNodePosition) {
+    return childTextComposable.getWordSelectionAt(textNodePosition);
+  }
+
+  @override
+  String getContiguousTextAt(TextNodePosition textPosition) {
+    return childTextComposable.getContiguousTextAt(textPosition);
+  }
+
+  @override
+  TextNodePosition? getPositionOneLineUp(TextNodePosition textNodePosition) {
+    return childTextComposable.getPositionOneLineUp(textNodePosition);
+  }
+
+  @override
+  TextNodePosition? getPositionOneLineDown(TextNodePosition textNodePosition) {
+    return childTextComposable.getPositionOneLineDown(textNodePosition);
+  }
+
+  @override
+  TextNodePosition getPositionAtStartOfLine(TextNodePosition textNodePosition) {
+    return childTextComposable.getPositionAtStartOfLine(textNodePosition);
+  }
+
+  @override
+  TextNodePosition getPositionAtEndOfLine(TextNodePosition textNodePosition) {
+    return childTextComposable.getPositionAtEndOfLine(textNodePosition);
+  }
 }

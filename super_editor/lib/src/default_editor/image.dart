@@ -16,6 +16,7 @@ class ImageNode with ChangeNotifier implements DocumentNode {
   })  : _imageUrl = imageUrl,
         _altText = altText;
 
+  @override
   final String id;
 
   String _imageUrl;
@@ -36,15 +37,46 @@ class ImageNode with ChangeNotifier implements DocumentNode {
     }
   }
 
-  BinaryPosition get beginningPosition => BinaryPosition.included();
+  @override
+  BinaryNodePosition get beginningPosition => const BinaryNodePosition.included();
 
-  BinaryPosition get endPosition => BinaryPosition.included();
+  @override
+  BinaryNodePosition get endPosition => const BinaryNodePosition.included();
 
+  @override
+  NodePosition selectUpstreamPosition(NodePosition position1, NodePosition position2) {
+    if (position1 is! BinaryNodePosition) {
+      throw Exception('Expected a BinaryNodePosition for position1 but received a ${position1.runtimeType}');
+    }
+    if (position2 is! BinaryNodePosition) {
+      throw Exception('Expected a BinaryNodePosition for position2 but received a ${position2.runtimeType}');
+    }
+
+    // BinaryNodePosition's don't disambiguate between upstream and downstream so
+    // it doesn't matter which one we return.
+    return position1;
+  }
+
+  @override
+  NodePosition selectDownstreamPosition(NodePosition position1, NodePosition position2) {
+    if (position1 is! BinaryNodePosition) {
+      throw Exception('Expected a BinaryNodePosition for position1 but received a ${position1.runtimeType}');
+    }
+    if (position2 is! BinaryNodePosition) {
+      throw Exception('Expected a BinaryNodePosition for position2 but received a ${position2.runtimeType}');
+    }
+
+    // BinaryNodePosition's don't disambiguate between upstream and downstream so
+    // it doesn't matter which one we return.
+    return position1;
+  }
+
+  @override
   BinarySelection computeSelection({
     @required dynamic base,
     @required dynamic extent,
   }) {
-    return BinarySelection.all();
+    return const BinarySelection.all();
   }
 
   @override
@@ -53,8 +85,25 @@ class ImageNode with ChangeNotifier implements DocumentNode {
       throw Exception('ImageNode can only copy content from a BinarySelection.');
     }
 
-    return selection.position == BinaryPosition.included() ? _imageUrl : null;
+    return selection.position == const BinaryNodePosition.included() ? _imageUrl : null;
   }
+
+  @override
+  bool hasEquivalentContent(DocumentNode other) {
+    return other is ImageNode && imageUrl == other.imageUrl && altText == other.altText;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImageNode &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          _imageUrl == other._imageUrl &&
+          _altText == other._altText;
+
+  @override
+  int get hashCode => id.hashCode ^ _imageUrl.hashCode ^ _altText.hashCode;
 }
 
 /// Displays an image in a document.
@@ -109,6 +158,7 @@ Widget? imageBuilder(ComponentContext componentContext) {
     componentKey: componentContext.componentKey,
     imageUrl: (componentContext.documentNode as ImageNode).imageUrl,
     isSelected: isSelected,
-    selectionColor: (componentContext.extensions[selectionStylesExtensionKey] as SelectionStyle).selectionColor,
+    selectionColor: (componentContext.extensions[selectionStylesExtensionKey] as SelectionStyle?)?.selectionColor ??
+        Colors.transparent,
   );
 }

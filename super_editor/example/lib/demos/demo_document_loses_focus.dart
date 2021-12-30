@@ -1,9 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Demo of an [Editor] widget that can lose focus to a nearby
-/// [TextField] to ensure that the [Editor] correctly removes
+/// Demo of an [SuperEditor] widget that can lose focus to a nearby
+/// [TextField] to ensure that the [SuperEditor] correctly removes
 /// its caret.
 // TODO: Add widget tests for focus interaction verifications
 class LoseFocusDemo extends StatefulWidget {
@@ -12,14 +11,14 @@ class LoseFocusDemo extends StatefulWidget {
 }
 
 class _LoseFocusDemoState extends State<LoseFocusDemo> {
-  Document _doc;
-  DocumentEditor _docEditor;
+  late Document _doc;
+  late DocumentEditor _docEditor;
 
   @override
   void initState() {
     super.initState();
     _doc = _createDocument1();
-    _docEditor = DocumentEditor(document: _doc);
+    _docEditor = DocumentEditor(document: _doc as MutableDocument);
   }
 
   @override
@@ -34,7 +33,7 @@ class _LoseFocusDemoState extends State<LoseFocusDemo> {
         children: [
           _buildDocSelector(),
           Expanded(
-            child: Editor.standard(
+            child: SuperEditor(
               editor: _docEditor,
               maxWidth: 600,
               padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 24),
@@ -46,8 +45,8 @@ class _LoseFocusDemoState extends State<LoseFocusDemo> {
   }
 
   Widget _buildDocSelector() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 48.0),
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 48.0),
       child: TextField(
         decoration: InputDecoration(
           hintText: 'tap to give focus to this TextField',

@@ -42,8 +42,8 @@ void main() {
               text: 'My Header',
               spans: AttributedSpans(
                 attributions: [
-                  SpanMarker(attribution: boldAttribution, offset: 3, markerType: SpanMarkerType.start),
-                  SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
+                  const SpanMarker(attribution: boldAttribution, offset: 3, markerType: SpanMarkerType.start),
+                  const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
                 ],
               ),
             ),
@@ -74,8 +74,8 @@ void main() {
               text: 'This is a blockquote',
               spans: AttributedSpans(
                 attributions: [
-                  SpanMarker(attribution: boldAttribution, offset: 10, markerType: SpanMarkerType.start),
-                  SpanMarker(attribution: boldAttribution, offset: 19, markerType: SpanMarkerType.end),
+                  const SpanMarker(attribution: boldAttribution, offset: 10, markerType: SpanMarkerType.start),
+                  const SpanMarker(attribution: boldAttribution, offset: 19, markerType: SpanMarkerType.end),
                 ],
               ),
             ),
@@ -123,8 +123,8 @@ This is some code
               text: 'This is a paragraph.',
               spans: AttributedSpans(
                 attributions: [
-                  SpanMarker(attribution: boldAttribution, offset: 5, markerType: SpanMarkerType.start),
-                  SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
+                  const SpanMarker(attribution: boldAttribution, offset: 5, markerType: SpanMarkerType.start),
+                  const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
                 ],
               ),
             ),
@@ -142,10 +142,10 @@ This is some code
               text: 'This is a paragraph.',
               spans: AttributedSpans(
                 attributions: [
-                  SpanMarker(attribution: boldAttribution, offset: 5, markerType: SpanMarkerType.start),
-                  SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
-                  SpanMarker(attribution: italicsAttribution, offset: 5, markerType: SpanMarkerType.start),
-                  SpanMarker(attribution: italicsAttribution, offset: 8, markerType: SpanMarkerType.end),
+                  const SpanMarker(attribution: boldAttribution, offset: 5, markerType: SpanMarkerType.start),
+                  const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
+                  const SpanMarker(attribution: italicsAttribution, offset: 5, markerType: SpanMarkerType.start),
+                  const SpanMarker(attribution: italicsAttribution, offset: 8, markerType: SpanMarkerType.end),
                 ],
               ),
             ),
@@ -163,10 +163,10 @@ This is some code
               text: 'This is a paragraph.',
               spans: AttributedSpans(
                 attributions: [
-                  SpanMarker(attribution: boldAttribution, offset: 5, markerType: SpanMarkerType.start),
-                  SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
-                  SpanMarker(attribution: codeAttribution, offset: 5, markerType: SpanMarkerType.start),
-                  SpanMarker(attribution: codeAttribution, offset: 8, markerType: SpanMarkerType.end),
+                  const SpanMarker(attribution: boldAttribution, offset: 5, markerType: SpanMarkerType.start),
+                  const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
+                  const SpanMarker(attribution: codeAttribution, offset: 5, markerType: SpanMarkerType.start),
+                  const SpanMarker(attribution: codeAttribution, offset: 8, markerType: SpanMarkerType.end),
                 ],
               ),
             ),
@@ -249,8 +249,8 @@ This is some code
               text: 'Unordered 1',
               spans: AttributedSpans(
                 attributions: [
-                  SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
-                  SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
+                  const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
+                  const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
                 ],
               ),
             ),
@@ -311,8 +311,8 @@ This is some code
               text: 'Ordered 1',
               spans: AttributedSpans(
                 attributions: [
-                  SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
-                  SpanMarker(attribution: boldAttribution, offset: 6, markerType: SpanMarkerType.end),
+                  const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
+                  const SpanMarker(attribution: boldAttribution, offset: 6, markerType: SpanMarkerType.end),
                 ],
               ),
             ),
@@ -385,6 +385,8 @@ This is some code
         // Ensure that the document serializes. We don't bother with
         // validating the output because other tests should validate
         // the per-node serializations.
+
+        // ignore: unused_local_variable
         final markdown = serializeDocumentToMarkdown(doc);
       });
     });
@@ -438,7 +440,7 @@ This is some code
       });
 
       test('single unstyled paragraph', () {
-        final markdown = 'This is some unstyled text to parse as markdown';
+        const markdown = 'This is some unstyled text to parse as markdown';
 
         final document = deserializeMarkdownToDocument(markdown);
 
@@ -450,7 +452,7 @@ This is some code
       });
 
       test('single styled paragraph', () {
-        final markdown = 'This is **some *styled*** text to parse as markdown';
+        const markdown = 'This is **some *styled*** text to parse as markdown';
 
         final document = deserializeMarkdownToDocument(markdown);
 
@@ -468,7 +470,7 @@ This is some code
       });
 
       test('unordered list', () {
-        final markdown = '''
+        const markdown = '''
  * list item 1
  * list item 2
    * list item 2.1
@@ -491,7 +493,7 @@ This is some code
       });
 
       test('ordered list', () {
-        final markdown = '''
+        const markdown = '''
  1. list item 1
  1. list item 2
     1. list item 2.1
@@ -547,7 +549,7 @@ This is some code
   });
 }
 
-final exampleMarkdownDoc1 = '''
+const exampleMarkdownDoc1 = '''
 # Example 1
 ---
 This is an example doc that has various types of nodes.

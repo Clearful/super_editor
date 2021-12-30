@@ -15,17 +15,17 @@ class _InteractiveTextFieldDemoState extends State<InteractiveTextFieldDemo> {
     text: AttributedText(
         text: 'Super Editor is an open source text editor for Flutter projects.',
         spans: AttributedSpans(attributions: [
-          SpanMarker(attribution: brandAttribution, offset: 0, markerType: SpanMarkerType.start),
-          SpanMarker(attribution: brandAttribution, offset: 11, markerType: SpanMarkerType.end),
-          SpanMarker(attribution: flutterAttribution, offset: 47, markerType: SpanMarkerType.start),
-          SpanMarker(attribution: flutterAttribution, offset: 53, markerType: SpanMarkerType.end),
+          const SpanMarker(attribution: brandAttribution, offset: 0, markerType: SpanMarkerType.start),
+          const SpanMarker(attribution: brandAttribution, offset: 11, markerType: SpanMarkerType.end),
+          const SpanMarker(attribution: flutterAttribution, offset: 47, markerType: SpanMarkerType.start),
+          const SpanMarker(attribution: flutterAttribution, offset: 53, markerType: SpanMarkerType.end),
         ])),
   );
 
-  OverlayEntry _popupEntry;
+  OverlayEntry? _popupEntry;
   Offset _popupOffset = Offset.zero;
 
-  FocusNode _focusNode;
+  FocusNode? _focusNode;
 
   @override
   void initState() {
@@ -35,7 +35,7 @@ class _InteractiveTextFieldDemoState extends State<InteractiveTextFieldDemo> {
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    _focusNode!.dispose();
     super.dispose();
   }
 
@@ -46,8 +46,8 @@ class _InteractiveTextFieldDemoState extends State<InteractiveTextFieldDemo> {
       return;
     }
 
-    final overlay = Overlay.of(context);
-    final overlayBox = overlay.context.findRenderObject() as RenderBox;
+    final overlay = Overlay.of(context)!;
+    final overlayBox = overlay.context.findRenderObject() as RenderBox?;
     final textFieldBox = textFieldContext.findRenderObject() as RenderBox;
     _popupOffset = textFieldBox.localToGlobal(localOffset, ancestor: overlayBox);
 
@@ -88,7 +88,7 @@ class _InteractiveTextFieldDemoState extends State<InteractiveTextFieldDemo> {
                             ));
                             _closePopup();
                           },
-                          child: Text('Copy'),
+                          child: const Text('Copy'),
                         ),
                       ],
                     ),
@@ -100,9 +100,9 @@ class _InteractiveTextFieldDemoState extends State<InteractiveTextFieldDemo> {
         );
       });
 
-      overlay.insert(_popupEntry);
+      overlay.insert(_popupEntry!);
     } else {
-      _popupEntry.markNeedsBuild();
+      _popupEntry!.markNeedsBuild();
     }
   }
 
@@ -111,7 +111,7 @@ class _InteractiveTextFieldDemoState extends State<InteractiveTextFieldDemo> {
       return;
     }
 
-    _popupEntry.remove();
+    _popupEntry!.remove();
     _popupEntry = null;
   }
 
@@ -121,7 +121,7 @@ class _InteractiveTextFieldDemoState extends State<InteractiveTextFieldDemo> {
       behavior: HitTestBehavior.opaque,
       onTap: () {
         // Remove focus from text field when the user taps anywhere else.
-        _focusNode.unfocus();
+        _focusNode!.unfocus();
       },
       child: Center(
         child: SizedBox(
@@ -142,7 +142,7 @@ class _InteractiveTextFieldDemoState extends State<InteractiveTextFieldDemo> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: _focusNode.hasFocus ? Colors.blue : Colors.grey.shade300,
+                        color: _focusNode!.hasFocus ? Colors.blue : Colors.grey.shade300,
                         width: 1,
                       ),
                     ),
@@ -150,7 +150,7 @@ class _InteractiveTextFieldDemoState extends State<InteractiveTextFieldDemo> {
                   );
                 },
                 hintBuilder: (context) {
-                  return Text(
+                  return const Text(
                     'enter some text',
                     style: TextStyle(
                       color: Colors.grey,
@@ -170,7 +170,7 @@ class _InteractiveTextFieldDemoState extends State<InteractiveTextFieldDemo> {
   }
 
   TextStyle _textStyleBuilder(Set<Attribution> attributions) {
-    TextStyle textStyle = TextStyle(
+    TextStyle textStyle = const TextStyle(
       color: Colors.black,
       fontSize: 14,
     );

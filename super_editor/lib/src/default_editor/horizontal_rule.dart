@@ -14,17 +14,49 @@ class HorizontalRuleNode with ChangeNotifier implements DocumentNode {
     required this.id,
   });
 
+  @override
   final String id;
 
-  BinaryPosition get beginningPosition => BinaryPosition.included();
+  @override
+  BinaryNodePosition get beginningPosition => const BinaryNodePosition.included();
 
-  BinaryPosition get endPosition => BinaryPosition.included();
+  @override
+  BinaryNodePosition get endPosition => const BinaryNodePosition.included();
 
+  @override
+  NodePosition selectUpstreamPosition(NodePosition position1, NodePosition position2) {
+    if (position1 is! BinaryNodePosition) {
+      throw Exception('Expected a BinaryNodePosition for position1 but received a ${position1.runtimeType}');
+    }
+    if (position2 is! BinaryNodePosition) {
+      throw Exception('Expected a BinaryNodePosition for position2 but received a ${position2.runtimeType}');
+    }
+
+    // BinaryNodePosition's don't disambiguate between upstream and downstream so
+    // it doesn't matter which one we return.
+    return position1;
+  }
+
+  @override
+  NodePosition selectDownstreamPosition(NodePosition position1, NodePosition position2) {
+    if (position1 is! BinaryNodePosition) {
+      throw Exception('Expected a BinaryNodePosition for position1 but received a ${position1.runtimeType}');
+    }
+    if (position2 is! BinaryNodePosition) {
+      throw Exception('Expected a BinaryNodePosition for position2 but received a ${position2.runtimeType}');
+    }
+
+    // BinaryNodePosition's don't disambiguate between upstream and downstream so
+    // it doesn't matter which one we return.
+    return position1;
+  }
+
+  @override
   BinarySelection computeSelection({
     @required dynamic base,
     @required dynamic extent,
   }) {
-    return BinarySelection.all();
+    return const BinarySelection.all();
   }
 
   @override
@@ -33,8 +65,20 @@ class HorizontalRuleNode with ChangeNotifier implements DocumentNode {
       throw Exception('HorizontalRuleNode can only copy content from a BinarySelection.');
     }
 
-    return selection.position == BinaryPosition.included() ? '---' : null;
+    return selection.position == const BinaryNodePosition.included() ? '---' : null;
   }
+
+  @override
+  bool hasEquivalentContent(DocumentNode other) {
+    return other is HorizontalRuleNode;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is HorizontalRuleNode && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 /// Displays a horizontal rule in a document.
@@ -88,6 +132,7 @@ Widget? horizontalRuleBuilder(ComponentContext componentContext) {
   return HorizontalRuleComponent(
     componentKey: componentContext.componentKey,
     isSelected: isSelected,
-    selectionColor: (componentContext.extensions[selectionStylesExtensionKey] as SelectionStyle).selectionColor,
+    selectionColor: (componentContext.extensions[selectionStylesExtensionKey] as SelectionStyle?)?.selectionColor ??
+        const Color(0x00000000),
   );
 }

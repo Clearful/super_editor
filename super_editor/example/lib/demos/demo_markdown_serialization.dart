@@ -16,19 +16,19 @@ class MarkdownSerializationDemo extends StatefulWidget {
 
 class _MarkdownSerializationDemoState extends State<MarkdownSerializationDemo> {
   final _docKey = GlobalKey();
-  Document _doc;
-  DocumentEditor _docEditor;
+  late Document _doc;
+  late DocumentEditor _docEditor;
 
   String _markdown = '';
 
-  Timer _updateTimer;
+  Timer? _updateTimer;
   final _markdownUpdateWaitTime = const Duration(milliseconds: 250);
 
   @override
   void initState() {
     super.initState();
     _doc = _createInitialDocument()..addListener(_onDocumentChange);
-    _docEditor = DocumentEditor(document: _doc);
+    _docEditor = DocumentEditor(document: _doc as MutableDocument);
 
     _updateMarkdown();
   }
@@ -61,7 +61,7 @@ class _MarkdownSerializationDemoState extends State<MarkdownSerializationDemo> {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Editor.standard(
+            child: SuperEditor(
               key: _docKey,
               editor: _docEditor,
               maxWidth: 600,
@@ -78,8 +78,8 @@ class _MarkdownSerializationDemoState extends State<MarkdownSerializationDemo> {
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                 child: Text(
                   _markdown,
-                  style: TextStyle(
-                    color: const Color(0xFFEEEEEE),
+                  style: const TextStyle(
+                    color: Color(0xFFEEEEEE),
                     height: 1.4,
                   ),
                 ),
@@ -97,7 +97,7 @@ Document _createInitialDocument() {
     nodes: [
       ImageNode(
         id: DocumentEditor.createNodeId(),
-        imageUrl: 'https://i.ytimg.com/vi/fq4N0hgOWzU/maxresdefault.jpg',
+        imageUrl: 'https://i.imgur.com/fSZwM7G.jpg',
       ),
       ParagraphNode(
         id: DocumentEditor.createNodeId(),
